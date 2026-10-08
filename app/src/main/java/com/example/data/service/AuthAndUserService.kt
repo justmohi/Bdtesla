@@ -17,7 +17,7 @@ class UserService(private val driverService: DriverService) {
 
     private val _currentUser = MutableStateFlow(
         UserProfile(
-            id = "USR-1001",
+            id = "LOCAL-USER",
             name = "Passenger",
             phone = "",
             activeRole = UserRole.PASSENGER,
