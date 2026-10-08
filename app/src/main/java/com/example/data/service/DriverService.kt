@@ -134,6 +134,44 @@ class DriverService(private val locationService: LocationService) {
         _allDrivers.value = seeded
     }
 
+    fun loadCurrentDriverProfile(userId: String) {
+        db?.collection("drivers")
+            ?.whereEqualTo("userId", userId)
+            ?.limit(1)
+            ?.get()
+            ?.addOnSuccessListener { result ->
+                val doc = result.documents.firstOrNull() ?: return@addOnSuccessListener
+                val loc = doc.get("currentLocation") as? Map<*, *>
+                val location = GeoPoint(
+                    latitude = (loc?.get("latitude") as? Number)?.toDouble() ?: locationService.getDefaultUserLocation().latitude,
+                    longitude = (loc?.get("longitude") as? Number)?.toDouble() ?: locationService.getDefaultUserLocation().longitude,
+                    nameEn = loc?.get("nameEn") as? String ?: "Current Location",
+                    nameBn = loc?.get("nameBn") as? String ?: "বর্তমান অবস্থান"
+                )
+                val driver = DriverProfile(
+                    driverId = doc.getString("driverId") ?: doc.id,
+                    userId = doc.getString("userId") ?: userId,
+                    fullName = doc.getString("fullName") ?: "",
+                    phone = doc.getString("phone") ?: "",
+                    vehicleType = runCatching { VehicleType.valueOf(doc.getString("vehicleType") ?: VehicleType.AUTO.name) }.getOrDefault(VehicleType.AUTO),
+                    vehicleNumber = doc.getString("vehicleNumber") ?: "",
+                    nidNumber = doc.getString("nidNumber") ?: "",
+                    licenseNumber = doc.getString("licenseNumber") ?: "",
+                    address = doc.getString("address") ?: "",
+                    emergencyContact = doc.getString("emergencyContact") ?: "",
+                    verificationStatus = runCatching { DriverVerificationStatus.valueOf(doc.getString("verificationStatus") ?: DriverVerificationStatus.NOT_APPLIED.name) }.getOrDefault(DriverVerificationStatus.NOT_APPLIED),
+                    isOnline = doc.getBoolean("isOnline") ?: false,
+                    currentLocation = location,
+                    driverRating = doc.getDouble("driverRating")?.toFloat() ?: 5.0f,
+                    totalCompletedTrips = doc.getLong("totalCompletedTrips")?.toInt() ?: 0,
+                    todayEarnings = doc.getDouble("todayEarnings") ?: 0.0,
+                    totalEarnings = doc.getDouble("totalEarnings") ?: 0.0
+                )
+                _currentDriverProfile.value = driver
+                _allDrivers.value = _allDrivers.value.filterNot { it.driverId == driver.driverId } + driver
+            }
+    }
+
     fun submitDriverRegistration(
         userId: String,
         fullName: String,
