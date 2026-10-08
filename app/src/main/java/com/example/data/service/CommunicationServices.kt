@@ -13,13 +13,13 @@ import java.util.UUID
 
 class NotificationService {
 
-    private val auth = FirebaseAuth.getInstance()
-    private val db = FirebaseFirestore.getInstance()
+    private val auth: FirebaseAuth? by lazy { runCatching { FirebaseAuth.getInstance() }.getOrNull() }
+    private val db: FirebaseFirestore? by lazy { runCatching { FirebaseFirestore.getInstance() }.getOrNull() }
 
     init {
-        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+        runCatching { FirebaseMessaging.getInstance() }.getOrNull()?.token?.addOnSuccessListener { token ->
             val uid = auth.currentUser?.uid ?: return@addOnSuccessListener
-            db.collection("users").document(uid).set(
+            db?.collection("users")?.document(uid)?.set(
                 mapOf(
                     "fcmToken" to token,
                     "updatedAt" to FieldValue.serverTimestamp()
@@ -64,7 +64,7 @@ class NotificationService {
         _notifications.value = listOf(item) + _notifications.value
 
         val uid = auth.currentUser?.uid ?: return
-        db.collection("notifications").document(item.id).set(
+        db?.collection("notifications")?.document(item.id)?.set(
             mapOf(
                 "userId" to uid,
                 "titleEn" to item.titleEn,
