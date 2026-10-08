@@ -46,8 +46,11 @@ class AuthService {
 
         val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
             override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
+                // Firebase may complete verification automatically on supported devices.
+                // Treat this exactly like successful manual OTP verification so the UI
+                // does not remain stuck on the OTP screen.
                 auth.signInWithCredential(credential)
-                    .addOnSuccessListener { }
+                    .addOnSuccessListener { onCodeSent("") }
                     .addOnFailureListener { onError(it.message ?: "Phone verification failed.") }
             }
 
