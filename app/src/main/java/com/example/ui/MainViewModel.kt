@@ -110,7 +110,17 @@ class MainViewModel : ViewModel() {
     }
 
     fun setPhoneInput(phone: String) {
-        _uiState.update { it.copy(enteredPhone = phone, otpError = null) }
+        _uiState.update {
+            it.copy(
+                enteredPhone = phone,
+                otpError = null,
+                authStep = if (it.authStep == AuthStep.SPLASH) AuthStep.PHONE_INPUT else it.authStep
+            )
+        }
+    }
+
+    fun backToPhoneInput() {
+        _uiState.update { it.copy(authStep = AuthStep.PHONE_INPUT, enteredOtp = "", otpError = null) }
     }
 
     fun setOtpInput(otp: String) {
