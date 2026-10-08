@@ -11,39 +11,168 @@ service cloud.firestore {
       return signedIn() && request.auth.token.admin == true;
     }
 
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function changedOnly(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    function rideStatusAllowed() {
+      return request.resource.data.status in [
+        'REQUESTED',
+        'SEARCHING_DRIVER',
+        'DRIVER_ASSIGNED',
+        'DRIVER_ARRIVING',
+        'DRIVER_ARRIVED',
+        'TRIP_STARTED',
+        'TRIP_COMPLETED',
+        'CANCELLED'
+      ];
+    }
+
     match /users/{userId} {
-      allow create, read, update: if signedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if isOwner(userId)
+        && request.resource.data.id == userId
+        && request.resource.data.driverStatus in [
+          'NOT_APPLIED',
+          'PENDING_APPROVAL'
+        ]
+        && request.resource.data.activeRole == 'PASSENGER';
+
+      allow read: if isOwner(userId) || isAdmin();
+
+      // A client can maintain basic profile data, but cannot self-promote,
+      // approve itself as a driver, or alter server-managed ratings/ride counts.
+      allow update: if isOwner(userId)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.driverStatus == resource.data.driverStatus
+        && request.resource.data.passengerRating == resource.data.passengerRating
+        && request.resource.data.totalRidesAsPassenger == resource.data.totalRidesAsPassenger
+        && (
+          request.resource.data.activeRole == resource.data.activeRole
+          || (
+            resource.data.activeRole == 'PASSENGER' &&
+            request.resource.data.activeRole == 'DRIVER' &&
+            resource.data.driverStatus == 'APPROVED'
+          )
+          || (
+            resource.data.activeRole == 'DRIVER' &&
+            request.resource.data.activeRole == 'PASSENGER'
+          )
+        )
+        && changedOnly([
+          'name',
+          'phone',
+          'photoUrl',
+          'activeRole',
+          'updatedAt'
+        ]);
+
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /drivers/{driverId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.verificationStatus == 'PENDING_APPROVAL'
+        && request.resource.data.isOnline == false;
+
       allow read: if signedIn() &&
         (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if signedIn() &&
-        (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Driver may only change live operational fields.
+      // Verification, identity, earnings and trip counters are server/admin managed.
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && resource.data.verificationStatus == 'APPROVED'
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.verificationStatus == resource.data.verificationStatus
+        && request.resource.data.driverId == resource.data.driverId
+        && changedOnly([
+          'isOnline',
+          'currentLocation',
+          'updatedAt'
+        ]);
+
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /rides/{rideId} {
-      allow create: if signedIn() && request.resource.data.passengerId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.id == rideId
+        && request.resource.data.passengerId == request.auth.uid
+        && request.resource.data.driverId == null
+        && request.resource.data.status in ['REQUESTED', 'SEARCHING_DRIVER'];
+
       allow read: if signedIn() &&
-        (resource.data.passengerId == request.auth.uid ||
-         resource.data.driverId == request.auth.uid ||
-         isAdmin());
-      allow update: if signedIn() &&
-        (resource.data.passengerId == request.auth.uid ||
-         (resource.data.driverId != null &&
-          get(/databases/$(database)/documents/drivers/$(resource.data.driverId)).data.userId == request.auth.uid) ||
-         isAdmin());
+        (
+          resource.data.passengerId == request.auth.uid ||
+          (
+            resource.data.driverId != null &&
+            get(/databases/$(database)/documents/drivers/$(resource.data.driverId)).data.userId == request.auth.uid
+          ) ||
+          isAdmin()
+        );
+
+      // Passenger can cancel an active ride and submit a driver rating/payment
+      // confirmation. Core assignment/fare fields remain protected.
+      allow update: if signedIn()
+        && resource.data.passengerId == request.auth.uid
+        && request.resource.data.passengerId == resource.data.passengerId
+        && request.resource.data.driverId == resource.data.driverId
+        && changedOnly([
+          'status',
+          'isPaid',
+          'driverRating',
+          'updatedAt'
+        ])
+        && rideStatusAllowed();
+
+      // An assigned driver can accept an unassigned request, then update only
+      // the operational ride state/location and passenger rating.
+      allow update: if signedIn()
+        && resource.data.driverId == null
+        && request.resource.data.driverId != null
+        && get(/databases/$(database)/documents/drivers/$(request.resource.data.driverId)).data.userId == request.auth.uid
+        && request.resource.data.passengerId == resource.data.passengerId
+        && request.resource.data.estimatedFare == resource.data.estimatedFare
+        && changedOnly([
+          'driverId',
+          'driverName',
+          'driverPhone',
+          'vehicleNumber',
+          'status',
+          'driverLocation',
+          'updatedAt'
+        ])
+        && request.resource.data.status == 'DRIVER_ASSIGNED';
+
+      allow update: if signedIn()
+        && resource.data.driverId != null
+        && get(/databases/$(database)/documents/drivers/$(resource.data.driverId)).data.userId == request.auth.uid
+        && request.resource.data.driverId == resource.data.driverId
+        && request.resource.data.passengerId == resource.data.passengerId
+        && changedOnly([
+          'status',
+          'driverLocation',
+          'passengerRating',
+          'updatedAt'
+        ])
+        && rideStatusAllowed();
+
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     match /notifications/{notificationId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if signedIn() && resource.data.userId == request.auth.uid;
-      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
     }
 
     match /chats/{chatId}/messages/{messageId} {
@@ -51,10 +180,12 @@ service cloud.firestore {
         (resource.data.senderId == request.auth.uid ||
          resource.data.receiverId == request.auth.uid ||
          isAdmin());
+
       allow create: if signedIn() &&
         (request.resource.data.senderId == request.auth.uid ||
          request.resource.data.receiverId == request.auth.uid ||
          isAdmin());
+
       allow update, delete: if signedIn() &&
         (resource.data.senderId == request.auth.uid ||
          resource.data.receiverId == request.auth.uid ||
