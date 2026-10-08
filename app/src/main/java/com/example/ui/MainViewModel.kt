@@ -36,6 +36,7 @@ data class MainUiState(
     val authStep: AuthStep = AuthStep.AUTHENTICATED, // starts authenticated or splash
     val enteredPhone: String = "",
     val enteredOtp: String = "",
+    val verificationId: String = "",
     val otpError: String? = null,
     val userProfile: UserProfile? = null,
     val activeRole: UserRole = UserRole.PASSENGER,
@@ -116,18 +117,48 @@ class MainViewModel : ViewModel() {
         _uiState.update { it.copy(enteredOtp = otp, otpError = null) }
     }
 
-    fun verifyOtp() {
+    fun sendOtp(activity: android.app.Activity) {
         val phone = _uiState.value.enteredPhone
-        val otp = _uiState.value.enteredOtp
-        if (authService.verifyOtp(phone, otp)) {
-            _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED) }
-        } else {
-            _uiState.update { it.copy(otpError = "Invalid OTP. Enter the 6-digit verification code.") }
-        }
+        authService.sendOtp(
+            activity = activity,
+            phone = phone,
+            onCodeSent = { verificationId ->
+                _uiState.update {
+                    it.copy(
+                        verificationId = verificationId,
+                        authStep = AuthStep.OTP_INPUT,
+                        otpError = null
+                    )
+                }
+            },
+            onError = { message ->
+                _uiState.update { it.copy(otpError = message) }
+            }
+        )
     }
 
-    fun skipAuthForDemo() {
-        _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED) }
+    fun verifyOtp() {
+        val code = _uiState.value.enteredOtp
+        authService.verifyOtp(
+            verificationId = _uiState.value.verificationId,
+            code = code,
+            onSuccess = {
+                val firebaseUser = authService.currentUser()
+                userService.updateProfile(
+                    name = userService.currentUser.value.name,
+                    phone = firebaseUser?.phoneNumber ?: _uiState.value.enteredPhone
+                )
+                _uiState.update {
+                    it.copy(
+                        authStep = AuthStep.AUTHENTICATED,
+                        otpError = null
+                    )
+                }
+            },
+            onError = { message ->
+                _uiState.update { it.copy(otpError = message) }
+            }
+        )
     }
 
     fun selectPassengerTab(tab: PassengerTab) {
@@ -213,7 +244,7 @@ class MainViewModel : ViewModel() {
         rideService.requestRide(
             passengerId = user?.id ?: "LOCAL-USER",
             passengerName = user?.name ?: "Passenger",
-            passengerPhone = user?.phone ?: phone,
+            passengerPhone = user?.phone ?: _uiState.value.enteredPhone,
             pickup = pickup,
             destination = dest,
             vehicleType = _uiState.value.selectedVehicle
