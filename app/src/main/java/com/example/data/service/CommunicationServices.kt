@@ -2,12 +2,32 @@ package com.example.data.service
 
 import com.example.data.model.ChatMessage
 import com.example.data.model.NotificationItem
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 class NotificationService {
+
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
+
+    init {
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            val uid = auth.currentUser?.uid ?: return@addOnSuccessListener
+            db.collection("users").document(uid).set(
+                mapOf(
+                    "fcmToken" to token,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                com.google.firebase.firestore.SetOptions.merge()
+            )
+        }
+    }
 
     private val _notifications = MutableStateFlow<List<NotificationItem>>(
         listOf(
@@ -42,6 +62,21 @@ class NotificationService {
             messageBn = messageBn
         )
         _notifications.value = listOf(item) + _notifications.value
+
+        val uid = auth.currentUser?.uid ?: return
+        db.collection("notifications").document(item.id).set(
+            mapOf(
+                "userId" to uid,
+                "titleEn" to item.titleEn,
+                "titleBn" to item.titleBn,
+                "messageEn" to item.messageEn,
+                "messageBn" to item.messageBn,
+                "timestamp" to item.timestamp,
+                "isRead" to item.isRead,
+                "type" to item.type,
+                "createdAt" to FieldValue.serverTimestamp()
+            )
+        )
     }
 
     fun markAllAsRead() {
