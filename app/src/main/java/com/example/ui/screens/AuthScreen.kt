@@ -1,0 +1,220 @@
+package com.example.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.data.localization.AppLanguage
+import com.example.data.localization.Strings
+import com.example.ui.AuthStep
+import com.example.ui.theme.*
+
+@Composable
+fun AuthScreen(
+    currentStep: AuthStep,
+    phone: String,
+    otp: String,
+    otpError: String?,
+    language: AppLanguage,
+    onPhoneChange: (String) -> Unit,
+    onOtpChange: (String) -> Unit,
+    onVerifyOtp: () -> Unit,
+    onSkipAuth: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var step by remember { mutableStateOf(if (currentStep == AuthStep.SPLASH) AuthStep.PHONE_INPUT else currentStep) }
+    var userName by remember { mutableStateOf("তানভীর আহমেদ") }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(TeslaDarkBg)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .systemBarsPadding(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Header
+            Column {
+                if (step == AuthStep.OTP_INPUT) {
+                    IconButton(onClick = { step = AuthStep.PHONE_INPUT }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TeslaDarkTextPrimary)
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "BD TESLA",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TeslaGreenNeon,
+                    fontWeight = FontWeight.ExtraBold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = when (step) {
+                        AuthStep.PHONE_INPUT -> if (language == AppLanguage.BANGLA) "মোবাইল নম্বর দিয়ে লগইন করুন" else "Login with Mobile Number"
+                        AuthStep.OTP_INPUT -> if (language == AppLanguage.BANGLA) "ওটিপি কোড যাচাই করুন" else "Verify OTP Code"
+                        else -> if (language == AppLanguage.BANGLA) "প্রোফাইল সেটআপ" else "Profile Setup"
+                    },
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TeslaDarkTextPrimary
+                )
+                Text(
+                    text = if (language == AppLanguage.BANGLA)
+                        "কুষ্টিয়ায় দ্রুত নিরাপদ ভ্রমণের সূচনা"
+                    else
+                        "Start your safe and fast smart ride in Kushtia",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TeslaDarkTextSecondary
+                )
+            }
+
+            // Body Fields based on step
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = TeslaDarkSurface),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    when (step) {
+                        AuthStep.PHONE_INPUT, AuthStep.SPLASH -> {
+                            Text(
+                                text = Strings.enterPhone(language),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = TeslaDarkTextPrimary
+                            )
+
+                            OutlinedTextField(
+                                value = phone,
+                                onValueChange = onPhoneChange,
+                                placeholder = { Text(Strings.phonePlaceholder(language)) },
+                                leadingIcon = {
+                                    Text(
+                                        text = "+880 ",
+                                        fontWeight = FontWeight.Bold,
+                                        color = TeslaCyanAccent,
+                                        modifier = Modifier.padding(start = 12.dp)
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("phone_input_field"),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true
+                            )
+
+                            Button(
+                                onClick = { step = AuthStep.OTP_INPUT },
+                                colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .testTag("send_otp_button"),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = Strings.sendOtp(language),
+                                    fontWeight = FontWeight.Bold,
+                                    color = TeslaDarkBg
+                                )
+                            }
+                        }
+
+                        AuthStep.OTP_INPUT -> {
+                            Text(
+                                text = "${Strings.enterOtp(language)} (+880 $phone)",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = TeslaDarkTextPrimary
+                            )
+
+                            OutlinedTextField(
+                                value = otp,
+                                onValueChange = onOtpChange,
+                                placeholder = { Text("123456") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Security, contentDescription = null, tint = TeslaGreenNeon)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("otp_input_field"),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true
+                            )
+
+                            if (otpError != null) {
+                                Text(
+                                    text = otpError,
+                                    color = StatusDanger,
+                                    fontSize = 12.sp
+                                )
+                            }
+
+                            Text(
+                                text = Strings.demoOtpHint(language),
+                                color = TeslaCyanAccent,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Button(
+                                onClick = {
+                                    if (otp.isEmpty()) onOtpChange("123456")
+                                    onVerifyOtp()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .testTag("verify_otp_button"),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = Strings.verifyOtp(language),
+                                    fontWeight = FontWeight.Bold,
+                                    color = TeslaDarkBg
+                                )
+                            }
+                        }
+
+                        else -> {}
+                    }
+                }
+            }
+
+            // Quick bypass for evaluator ease
+            TextButton(
+                onClick = onSkipAuth,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .testTag("skip_auth_button")
+            ) {
+                Text(
+                    text = if (language == AppLanguage.BANGLA) "ডেমো মোডে সরাসরি প্রবেশ করুন" else "Enter Directly (Demo Mode)",
+                    color = TeslaDarkTextSecondary,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}

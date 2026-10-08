@@ -1,0 +1,297 @@
+package com.example.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.data.localization.AppLanguage
+import com.example.data.model.*
+import com.example.data.service.*
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+
+enum class AuthStep {
+    SPLASH,
+    PHONE_INPUT,
+    OTP_INPUT,
+    PROFILE_SETUP,
+    AUTHENTICATED
+}
+
+enum class PassengerTab {
+    HOME,
+    RIDES,
+    NOTIFICATIONS,
+    PROFILE
+}
+
+enum class DriverTab {
+    DASHBOARD,
+    REQUESTS,
+    TRIPS,
+    EARNINGS,
+    PROFILE
+}
+
+data class MainUiState(
+    val language: AppLanguage = AppLanguage.BANGLA,
+    val authStep: AuthStep = AuthStep.AUTHENTICATED, // starts authenticated or splash
+    val enteredPhone: String = "01711234567",
+    val enteredOtp: String = "",
+    val otpError: String? = null,
+    val userProfile: UserProfile? = null,
+    val activeRole: UserRole = UserRole.PASSENGER,
+    val passengerTab: PassengerTab = PassengerTab.HOME,
+    val driverTab: DriverTab = DriverTab.DASHBOARD,
+    val showDriverRegistration: Boolean = false,
+    val showAdminDashboard: Boolean = false,
+    val showChatModal: Boolean = false,
+    val showCallDialog: Boolean = false,
+    val callTargetName: String = "",
+    val callTargetPhone: String = "",
+    val selectedPickup: GeoPoint? = null,
+    val selectedDestination: GeoPoint? = null,
+    val selectedVehicle: VehicleType = VehicleType.AUTO,
+    val showDestinationPicker: Boolean = false,
+    val activeRide: RideRequest? = null,
+    val incomingDriverRequest: RideRequest? = null,
+    val showRatingModal: Boolean = false,
+    val ratingComment: String = ""
+)
+
+class MainViewModel : ViewModel() {
+
+    val locationService = LocationService()
+    val fareService = FareService()
+    val driverService = DriverService(locationService)
+    val rideService = RideService(locationService, driverService, fareService)
+    val authService = AuthService()
+    val userService = UserService(driverService)
+    val notificationService = NotificationService()
+    val chatService = ChatService()
+    val paymentService = PaymentService()
+
+    private val _uiState = MutableStateFlow(
+        MainUiState(
+            selectedPickup = locationService.kushtiaHubs[0], // Majompur Gate
+            selectedDestination = locationService.kushtiaHubs[3] // Medical College
+        )
+    )
+    val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+    init {
+        // Collect reactive state flows from services
+        viewModelScope.launch {
+            userService.currentUser.collect { user ->
+                _uiState.update {
+                    it.copy(
+                        userProfile = user,
+                        activeRole = user.activeRole
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            rideService.activeRide.collect { ride ->
+                _uiState.update { it.copy(activeRide = ride) }
+            }
+        }
+
+        viewModelScope.launch {
+            rideService.incomingDriverRequest.collect { req ->
+                _uiState.update { it.copy(incomingDriverRequest = req) }
+            }
+        }
+    }
+
+    fun toggleLanguage() {
+        val next = if (_uiState.value.language == AppLanguage.BANGLA) AppLanguage.ENGLISH else AppLanguage.BANGLA
+        _uiState.update { it.copy(language = next) }
+    }
+
+    fun setPhoneInput(phone: String) {
+        _uiState.update { it.copy(enteredPhone = phone, otpError = null) }
+    }
+
+    fun setOtpInput(otp: String) {
+        _uiState.update { it.copy(enteredOtp = otp, otpError = null) }
+    }
+
+    fun verifyOtp() {
+        val phone = _uiState.value.enteredPhone
+        val otp = _uiState.value.enteredOtp
+        if (otp.length == 6 || otp == authService.demoOtp || otp.isNotEmpty()) {
+            _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED) }
+        } else {
+            _uiState.update { it.copy(otpError = "Invalid OTP. Use 123456 for demo.") }
+        }
+    }
+
+    fun skipAuthForDemo() {
+        _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED) }
+    }
+
+    fun selectPassengerTab(tab: PassengerTab) {
+        _uiState.update { it.copy(passengerTab = tab) }
+    }
+
+    fun selectDriverTab(tab: DriverTab) {
+        _uiState.update { it.copy(driverTab = tab) }
+    }
+
+    fun switchRole(role: UserRole) {
+        userService.switchRole(role)
+        _uiState.update {
+            it.copy(
+                activeRole = role,
+                showAdminDashboard = (role == UserRole.ADMIN),
+                showDriverRegistration = false
+            )
+        }
+    }
+
+    fun openDriverRegistration() {
+        _uiState.update { it.copy(showDriverRegistration = true) }
+    }
+
+    fun closeDriverRegistration() {
+        _uiState.update { it.copy(showDriverRegistration = false) }
+    }
+
+    fun submitDriverRegistration(
+        fullName: String,
+        phone: String,
+        vehicleType: VehicleType,
+        vehicleNumber: String,
+        nidNumber: String,
+        licenseNumber: String,
+        address: String,
+        emergencyContact: String
+    ) {
+        driverService.submitDriverRegistration(
+            userId = _uiState.value.userProfile?.id ?: "USR-1001",
+            fullName = fullName,
+            phone = phone,
+            vehicleType = vehicleType,
+            vehicleNumber = vehicleNumber,
+            nidNumber = nidNumber,
+            licenseNumber = licenseNumber,
+            address = address,
+            emergencyContact = emergencyContact
+        )
+        userService.onDriverApplicationSubmitted()
+        _uiState.update { it.copy(showDriverRegistration = false) }
+        notificationService.pushNotification(
+            titleEn = "Driver Application Submitted",
+            titleBn = "ড্রাইভার আবেদন জমা হয়েছে",
+            messageEn = "Your verification documents are being reviewed by Kushtia BD TESLA team.",
+            messageBn = "আপনার ড্রাইভার কাগজপত্র পর্যালোচনার জন্য জমা হয়েছে।"
+        )
+    }
+
+    fun setVehicle(vehicleType: VehicleType) {
+        _uiState.update { it.copy(selectedVehicle = vehicleType) }
+    }
+
+    fun setPickup(geoPoint: GeoPoint) {
+        _uiState.update { it.copy(selectedPickup = geoPoint) }
+    }
+
+    fun setDestination(geoPoint: GeoPoint) {
+        _uiState.update { it.copy(selectedDestination = geoPoint, showDestinationPicker = false) }
+    }
+
+    fun toggleDestinationPicker(show: Boolean) {
+        _uiState.update { it.copy(showDestinationPicker = show) }
+    }
+
+    // Passenger Ride Actions
+    fun requestRide() {
+        val pickup = _uiState.value.selectedPickup ?: locationService.kushtiaHubs[0]
+        val dest = _uiState.value.selectedDestination ?: locationService.kushtiaHubs[3]
+        val user = _uiState.value.userProfile
+        rideService.requestRide(
+            passengerId = user?.id ?: "USR-1001",
+            passengerName = user?.name ?: "তানভীর আহমেদ",
+            passengerPhone = user?.phone ?: "01711-234567",
+            pickup = pickup,
+            destination = dest,
+            vehicleType = _uiState.value.selectedVehicle
+        )
+    }
+
+    fun cancelRide() {
+        rideService.cancelRide()
+    }
+
+    fun confirmPayment() {
+        rideService.confirmPayment()
+    }
+
+    fun submitDriverRating(rating: Float) {
+        rideService.submitDriverRating(rating, _uiState.value.ratingComment)
+        _uiState.update { it.copy(showRatingModal = false, ratingComment = "") }
+        rideService.dismissCompletedRide()
+    }
+
+    // Driver Ride Actions
+    fun toggleDriverOnline(online: Boolean) {
+        driverService.setDriverOnline(online)
+    }
+
+    fun driverAcceptRequest() {
+        val currentDriver = driverService.currentDriverProfile.value
+            ?: driverService.allDrivers.value.first()
+        rideService.driverAcceptRequest(currentDriver)
+    }
+
+    fun driverRejectRequest() {
+        rideService.driverRejectRequest()
+    }
+
+    fun driverMarkArrived() {
+        rideService.driverMarkArrived()
+    }
+
+    fun startTrip() {
+        rideService.startTrip()
+    }
+
+    fun completeTrip() {
+        rideService.completeTrip()
+    }
+
+    // Communication Actions
+    fun openCallDialog(name: String, phone: String) {
+        _uiState.update { it.copy(showCallDialog = true, callTargetName = name, callTargetPhone = phone) }
+    }
+
+    fun closeCallDialog() {
+        _uiState.update { it.copy(showCallDialog = false) }
+    }
+
+    fun openChat() {
+        _uiState.update { it.copy(showChatModal = true) }
+    }
+
+    fun closeChat() {
+        _uiState.update { it.copy(showChatModal = false) }
+    }
+
+    fun sendChatMessage(text: String, isDriver: Boolean) {
+        val rideId = _uiState.value.activeRide?.id ?: "BDT-ACTIVE"
+        val sender = if (isDriver) "Driver" else (_uiState.value.userProfile?.name ?: "Passenger")
+        chatService.sendMessage(rideId, sender, text, isDriver)
+    }
+
+    // Admin Controls
+    fun adminApproveDriver(driverId: String) {
+        driverService.approveDriver(driverId)
+        if (_uiState.value.userProfile?.id == driverId || driverService.currentDriverProfile.value?.driverId == driverId) {
+            userService.onDriverApproved()
+        }
+    }
+
+    fun adminRejectDriver(driverId: String) {
+        driverService.rejectDriver(driverId)
+    }
+}
