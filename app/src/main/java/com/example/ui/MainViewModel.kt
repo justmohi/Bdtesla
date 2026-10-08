@@ -82,6 +82,7 @@ class MainViewModel : ViewModel() {
         if (authService.currentUser() != null) {
             _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED) }
             userService.loadCurrentUserFromFirestore()
+            authService.currentUser()?.uid?.let { driverService.loadCurrentDriverProfile(it) }
         }
 
         // Collect reactive state flows from services
@@ -164,6 +165,7 @@ class MainViewModel : ViewModel() {
                     phone = firebaseUser?.phoneNumber ?: _uiState.value.enteredPhone
                 )
                 userService.syncCurrentUserToFirestore()
+                firebaseUser?.uid?.let { driverService.loadCurrentDriverProfile(it) }
                 _uiState.update {
                     it.copy(
                         authStep = AuthStep.AUTHENTICATED,
