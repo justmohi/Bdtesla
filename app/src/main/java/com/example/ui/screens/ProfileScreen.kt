@@ -90,13 +90,13 @@ fun ProfileScreen(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = user?.name ?: "তানভীর আহমেদ",
+                        text = user?.name ?: "Passenger",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = TeslaDarkTextPrimary
                     )
                     Text(
-                        text = user?.phone ?: "01711-234567",
+                        text = user?.phone ?: "",
                         style = MaterialTheme.typography.bodySmall,
                         color = TeslaDarkTextSecondary
                     )
@@ -228,7 +228,7 @@ fun ProfileScreen(
                 ProfileOptionItem(
                     icon = Icons.Default.HelpOutline,
                     title = if (language == AppLanguage.BANGLA) "সহায়তা ও সাপোর্ট" else "Help & Support",
-                    subtitle = if (language == AppLanguage.BANGLA) "কুষ্টিয়া হেল্পলাইন: ০৯৬৩৮..." else "Kushtia Helpline",
+                    subtitle = if (language == AppLanguage.BANGLA) "অফিসিয়াল সাপোর্ট চ্যানেল" else "Kushtia Helpline",
                     onClick = { showSupportDialog = true }
                 )
                 HorizontalDivider(color = TeslaDarkCardBorder, modifier = Modifier.padding(horizontal = 16.dp))
@@ -259,9 +259,9 @@ fun ProfileScreen(
             text = {
                 Text(
                     "যে কোনো সহায়তার জন্য আমাদের কুষ্টিয়া সদর অফিসে যোগাযোগ করুন:\n\n" +
-                    "📍 ঠিকানা: মজমপুর গেট, এনএস রোড, কুষ্টিয়া সদর\n" +
-                    "📞 হটলাইন: +880 1700-112233\n" +
-                    "✉️ ইমেইল: support@bdtesla-kushtia.com\n\n" +
+                    "📍 অফিসিয়াল সাপোর্ট চ্যানেল\n" +
+                    "📞 হটলাইন: অ্যাপে প্রকাশিত অফিসিয়াল নম্বর\n" +
+                    "✉️ ইমেইল: অ্যাপে প্রকাশিত অফিসিয়াল ইমেইল\n\n" +
                     "২৪/৭ গ্রাহক ও চালক সেবা চালু রয়েছে।",
                     color = TeslaDarkTextPrimary
                 )
