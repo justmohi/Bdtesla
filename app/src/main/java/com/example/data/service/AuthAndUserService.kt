@@ -101,6 +101,34 @@ class UserService(private val driverService: DriverService) {
         _currentUser.value = _currentUser.value.copy(name = name, phone = phone)
     }
 
+    fun loadCurrentUserFromFirestore() {
+        val firebaseUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(firebaseUid)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (!snapshot.exists()) return@addOnSuccessListener
+                val role = snapshot.getString("activeRole")
+                    ?.let { runCatching { UserRole.valueOf(it) }.getOrNull() }
+                    ?: UserRole.PASSENGER
+                val driverStatus = snapshot.getString("driverStatus")
+                    ?.let { runCatching { DriverVerificationStatus.valueOf(it) }.getOrNull() }
+                    ?: DriverVerificationStatus.NOT_APPLIED
+                _currentUser.value = _currentUser.value.copy(
+                    id = firebaseUid,
+                    name = snapshot.getString("name") ?: "Passenger",
+                    phone = snapshot.getString("phone")
+                        ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.phoneNumber.orEmpty(),
+                    photoUrl = snapshot.getString("photoUrl").orEmpty(),
+                    activeRole = if (role == UserRole.ADMIN) UserRole.PASSENGER else role,
+                    driverStatus = driverStatus,
+                    passengerRating = snapshot.getDouble("passengerRating")?.toFloat() ?: _currentUser.value.passengerRating,
+                    totalRidesAsPassenger = snapshot.getLong("totalRidesAsPassenger")?.toInt() ?: 0
+                )
+            }
+    }
+
     fun syncCurrentUserToFirestore() {
         val user = _currentUser.value
         val firebaseUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
