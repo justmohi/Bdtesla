@@ -15,7 +15,7 @@ class RideService(
     private val fareService: FareService
 ) {
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private val db = FirebaseFirestore.getInstance()
+    private val db: FirebaseFirestore? by lazy { runCatching { FirebaseFirestore.getInstance() }.getOrNull() }
 
     private fun persistRide(ride: RideRequest) {
         val data = mapOf(
@@ -43,7 +43,7 @@ class RideService(
             "completedAt" to ride.completedAt,
             "updatedAt" to FieldValue.serverTimestamp()
         )
-        db.collection("rides").document(ride.id).set(data)
+        db?.collection("rides")?.document(ride.id)?.set(data)
     }
     private var trackingJob: Job? = null
 
