@@ -33,7 +33,7 @@ enum class DriverTab {
 
 data class MainUiState(
     val language: AppLanguage = AppLanguage.BANGLA,
-    val authStep: AuthStep = AuthStep.AUTHENTICATED, // starts authenticated or splash
+    val authStep: AuthStep = AuthStep.SPLASH
     val enteredPhone: String = "",
     val enteredOtp: String = "",
     val verificationId: String = "",
@@ -79,6 +79,11 @@ class MainViewModel : ViewModel() {
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
+        if (authService.currentUser() != null) {
+            _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED) }
+            userService.loadCurrentUserFromFirestore()
+        }
+
         // Collect reactive state flows from services
         viewModelScope.launch {
             userService.currentUser.collect { user ->
@@ -182,6 +187,9 @@ class MainViewModel : ViewModel() {
 
     fun switchRole(role: UserRole) {
         if (role == UserRole.ADMIN) return
+        if (role == UserRole.DRIVER &&
+            userService.currentUser.value.driverStatus != DriverVerificationStatus.APPROVED
+        ) return
         userService.switchRole(role)
         _uiState.update {
             it.copy(
