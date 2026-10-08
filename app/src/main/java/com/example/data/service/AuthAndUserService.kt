@@ -101,6 +101,28 @@ class UserService(private val driverService: DriverService) {
         _currentUser.value = _currentUser.value.copy(name = name, phone = phone)
     }
 
+    fun syncCurrentUserToFirestore() {
+        val user = _currentUser.value
+        val firebaseUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(firebaseUid)
+            .set(
+                mapOf(
+                    "id" to firebaseUid,
+                    "name" to user.name,
+                    "phone" to user.phone,
+                    "photoUrl" to user.photoUrl,
+                    "activeRole" to user.activeRole.name,
+                    "driverStatus" to user.driverStatus.name,
+                    "passengerRating" to user.passengerRating,
+                    "totalRidesAsPassenger" to user.totalRidesAsPassenger,
+                    "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                ),
+                com.google.firebase.firestore.SetOptions.merge()
+            )
+    }
+
     fun switchRole(role: UserRole) {
         _currentUser.value = _currentUser.value.copy(activeRole = role)
     }
