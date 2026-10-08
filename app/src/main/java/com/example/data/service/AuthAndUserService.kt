@@ -114,6 +114,14 @@ class UserService(private val driverService: DriverService) {
         _currentUser.value = _currentUser.value.copy(name = name, phone = phone)
     }
 
+    fun setAuthenticatedIdentity(uid: String, phone: String) {
+        _currentUser.value = _currentUser.value.copy(
+            id = uid,
+            phone = phone,
+            name = if (_currentUser.value.name == "Passenger") "Passenger" else _currentUser.value.name
+        )
+    }
+
     fun loadCurrentUserFromFirestore() {
         val firebaseUid = runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() ?: return
         com.google.firebase.firestore.FirebaseFirestore.getInstance()
