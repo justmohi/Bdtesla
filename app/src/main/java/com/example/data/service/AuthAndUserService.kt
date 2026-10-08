@@ -18,8 +18,8 @@ class UserService(private val driverService: DriverService) {
     private val _currentUser = MutableStateFlow(
         UserProfile(
             id = "USR-1001",
-            name = "তানভীর আহমেদ (Tanvir)",
-            phone = "01711-234567",
+            name = "Passenger",
+            phone = "",
             activeRole = UserRole.PASSENGER,
             driverStatus = DriverVerificationStatus.NOT_APPLIED,
             passengerRating = 4.92f,
