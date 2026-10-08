@@ -1,6 +1,8 @@
 package com.example.data.service
 
 import com.example.data.model.*
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +15,36 @@ class RideService(
     private val fareService: FareService
 ) {
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val db = FirebaseFirestore.getInstance()
+
+    private fun persistRide(ride: RideRequest) {
+        val data = mapOf(
+            "id" to ride.id,
+            "passengerId" to ride.passengerId,
+            "passengerName" to ride.passengerName,
+            "passengerPhone" to ride.passengerPhone,
+            "driverId" to ride.driverId,
+            "driverName" to ride.driverName,
+            "driverPhone" to ride.driverPhone,
+            "vehicleType" to ride.vehicleType.name,
+            "vehicleNumber" to ride.vehicleNumber,
+            "pickup" to mapOf("latitude" to ride.pickup.latitude, "longitude" to ride.pickup.longitude, "nameEn" to ride.pickup.nameEn, "nameBn" to ride.pickup.nameBn),
+            "destination" to mapOf("latitude" to ride.destination.latitude, "longitude" to ride.destination.longitude, "nameEn" to ride.destination.nameEn, "nameBn" to ride.destination.nameBn),
+            "estimatedFare" to ride.estimatedFare,
+            "distanceKm" to ride.distanceKm,
+            "estimatedMinutes" to ride.estimatedMinutes,
+            "status" to ride.status.name,
+            "driverLocation" to ride.driverLocation?.let { mapOf("latitude" to it.latitude, "longitude" to it.longitude) },
+            "paymentMethod" to ride.paymentMethod,
+            "isPaid" to ride.isPaid,
+            "driverRating" to ride.driverRating,
+            "passengerRating" to ride.passengerRating,
+            "createdAt" to ride.createdAt,
+            "completedAt" to ride.completedAt,
+            "updatedAt" to FieldValue.serverTimestamp()
+        )
+        db.collection("rides").document(ride.id).set(data)
+    }
     private var trackingJob: Job? = null
 
     // The currently active ride for either Passenger or Driver
@@ -127,6 +159,7 @@ class RideService(
             driverLocation = pickup // initial
         )
         _activeRide.value = ride
+        persistRide(ride)
 
         // Driver Matching Flow:
         // Find if the current active driver in app can receive it, or assign a simulated nearby driver
@@ -164,10 +197,12 @@ class RideService(
                 driverLocation = startDriverLoc
             )
             _activeRide.value = assignedRide
+            persistRide(assignedRide)
 
             delay(2000)
             if (_activeRide.value?.id != ride.id) return@launch
             _activeRide.value = _activeRide.value?.copy(status = RideStatus.DRIVER_ARRIVING)
+            _activeRide.value?.let(::persistRide)
 
             // Simulate driver arriving at pickup over 6 steps
             val steps = 6
@@ -177,12 +212,14 @@ class RideService(
                 val fraction = i / steps.toFloat()
                 val currentLoc = locationService.interpolate(startDriverLoc, ride.pickup, fraction)
                 _activeRide.value = _activeRide.value?.copy(driverLocation = currentLoc)
+                _activeRide.value?.let(::persistRide)
             }
 
             _activeRide.value = _activeRide.value?.copy(
                 status = RideStatus.DRIVER_ARRIVED,
                 driverLocation = ride.pickup
             )
+            _activeRide.value?.let(::persistRide)
         }
     }
 
@@ -199,6 +236,7 @@ class RideService(
             driverLocation = driver.currentLocation
         )
         _activeRide.value = accepted
+        persistRide(accepted)
     }
 
     // Driver rejects incoming request
@@ -212,6 +250,7 @@ class RideService(
             status = RideStatus.DRIVER_ARRIVED,
             driverLocation = _activeRide.value?.pickup
         )
+        _activeRide.value?.let(::persistRide)
     }
 
     // Driver or passenger action: start trip
@@ -221,6 +260,7 @@ class RideService(
             status = RideStatus.TRIP_STARTED,
             driverLocation = current.pickup
         )
+        persistRide(_activeRide.value ?: current)
         // Simulate trip progression from pickup to destination
         trackingJob?.cancel()
         trackingJob = serviceScope.launch {
@@ -231,6 +271,7 @@ class RideService(
                 val fraction = i / steps.toFloat()
                 val intermediate = locationService.interpolate(current.pickup, current.destination, fraction)
                 _activeRide.value = _activeRide.value?.copy(driverLocation = intermediate)
+                _activeRide.value?.let(::persistRide)
             }
         }
     }
@@ -245,6 +286,7 @@ class RideService(
             completedAt = System.currentTimeMillis()
         )
         _activeRide.value = completed
+        persistRide(completed)
         _rideHistory.value = listOf(completed) + _rideHistory.value
 
         current.driverId?.let { drvId ->
@@ -255,6 +297,7 @@ class RideService(
     // Pay cash
     fun confirmPayment() {
         _activeRide.value = _activeRide.value?.copy(isPaid = true)
+        _activeRide.value?.let(::persistRide)
         _rideHistory.value = _rideHistory.value.map {
             if (it.id == _activeRide.value?.id) it.copy(isPaid = true) else it
         }
@@ -265,6 +308,7 @@ class RideService(
         val current = _activeRide.value ?: return
         val rated = current.copy(driverRating = rating)
         _activeRide.value = rated
+        persistRide(rated)
         _rideHistory.value = _rideHistory.value.map {
             if (it.id == current.id) it.copy(driverRating = rating) else it
         }
@@ -288,6 +332,7 @@ class RideService(
         trackingJob?.cancel()
         val current = _activeRide.value ?: return
         val cancelled = current.copy(status = RideStatus.CANCELLED)
+        persistRide(cancelled)
         _rideHistory.value = listOf(cancelled) + _rideHistory.value
         _activeRide.value = null
         _incomingDriverRequest.value = null
