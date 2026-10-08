@@ -70,6 +70,7 @@ class MainActivity : ComponentActivity() {
                                 onPhoneChange = { viewModel.setPhoneInput(it) },
                                 onOtpChange = { viewModel.setOtpInput(it) },
                                 onSendOtp = { viewModel.sendOtp(this@MainActivity) },
+                                onBackToPhone = { viewModel.backToPhoneInput() },
                                 onVerifyOtp = { viewModel.verifyOtp() }
                             )
                         }
