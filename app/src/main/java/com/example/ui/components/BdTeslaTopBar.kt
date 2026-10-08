@@ -204,21 +204,8 @@ fun BdTeslaTopBar(
                                 showRoleMenu = false
                             }
                         )
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text(Strings.adminMode(language)) },
-                            leadingIcon = {
-                                Icon(Icons.Default.Security, contentDescription = null, tint = TeslaGoldAccent)
-                            },
-                            onClick = {
-                                onRoleSelected(UserRole.ADMIN)
-                                showRoleMenu = false
-                            }
-                        )
-                    }
-                }
 
-                // Language Toggle Button (বাংলা / EN)
+// Language Toggle Button (বাংলা / EN)
                 OutlinedButton(
                     onClick = onToggleLanguage,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
