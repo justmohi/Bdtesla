@@ -10,9 +10,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class AuthService {
-    private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
+    private val auth: FirebaseAuth? by lazy {
+        runCatching { FirebaseAuth.getInstance() }.getOrNull()
+    }
 
-    fun currentUser() = auth.currentUser
+    fun currentUser() = auth?.currentUser
 
     fun normalizePhone(phone: String): String {
         val clean = phone.trim().replace(" ", "").replace("-", "")
@@ -36,6 +38,12 @@ class AuthService {
             return
         }
 
+        val firebaseAuth = auth
+        if (firebaseAuth == null) {
+            onError("Firebase is not configured. Add google-services.json to the Android app.")
+            return
+        }
+
         val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
             override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
                 auth.signInWithCredential(credential)
@@ -55,7 +63,7 @@ class AuthService {
             }
         }
 
-        val options = PhoneAuthOptions.newBuilder(auth)
+        val options = PhoneAuthOptions.newBuilder(firebaseAuth)
             .setPhoneNumber(normalized)
             .setTimeout(60L, java.util.concurrent.TimeUnit.SECONDS)
             .setActivity(activity)
@@ -75,8 +83,13 @@ class AuthService {
             onError("Invalid OTP. Enter the 6-digit verification code.")
             return
         }
+        val firebaseAuth = auth
+        if (firebaseAuth == null) {
+            onError("Firebase is not configured. Add google-services.json to the Android app.")
+            return
+        }
         val credential = PhoneAuthProvider.getCredential(verificationId, code)
-        auth.signInWithCredential(credential)
+        firebaseAuth.signInWithCredential(credential)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onError(it.message ?: "Invalid verification code.") }
     }
@@ -102,7 +115,7 @@ class UserService(private val driverService: DriverService) {
     }
 
     fun loadCurrentUserFromFirestore() {
-        val firebaseUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val firebaseUid = runCatching { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }.getOrNull() ?: return
         com.google.firebase.firestore.FirebaseFirestore.getInstance()
             .collection("users")
             .document(firebaseUid)
