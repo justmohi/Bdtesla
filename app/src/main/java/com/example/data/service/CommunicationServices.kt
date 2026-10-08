@@ -18,7 +18,7 @@ class NotificationService {
 
     init {
         runCatching { FirebaseMessaging.getInstance() }.getOrNull()?.token?.addOnSuccessListener { token ->
-            val uid = auth.currentUser?.uid ?: return@addOnSuccessListener
+            val uid = auth?.currentUser?.uid ?: return@addOnSuccessListener
             db?.collection("users")?.document(uid)?.set(
                 mapOf(
                     "fcmToken" to token,
@@ -63,7 +63,7 @@ class NotificationService {
         )
         _notifications.value = listOf(item) + _notifications.value
 
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth?.currentUser?.uid ?: return
         db?.collection("notifications")?.document(item.id)?.set(
             mapOf(
                 "userId" to uid,
