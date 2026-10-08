@@ -176,9 +176,11 @@ class MainViewModel : ViewModel() {
             code = code,
             onSuccess = {
                 val firebaseUser = authService.currentUser()
+                val verifiedPhone = firebaseUser?.phoneNumber ?: _uiState.value.enteredPhone
+                firebaseUser?.uid?.let { userService.setAuthenticatedIdentity(it, verifiedPhone) }
                 userService.updateProfile(
                     name = userService.currentUser.value.name,
-                    phone = firebaseUser?.phoneNumber ?: _uiState.value.enteredPhone
+                    phone = verifiedPhone
                 )
                 userService.syncCurrentUserToFirestore()
                 firebaseUser?.uid?.let { driverService.loadCurrentDriverProfile(it) }
