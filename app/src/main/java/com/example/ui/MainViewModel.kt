@@ -34,7 +34,7 @@ enum class DriverTab {
 data class MainUiState(
     val language: AppLanguage = AppLanguage.BANGLA,
     val authStep: AuthStep = AuthStep.AUTHENTICATED, // starts authenticated or splash
-    val enteredPhone: String = "01711234567",
+    val enteredPhone: String = "",
     val enteredOtp: String = "",
     val otpError: String? = null,
     val userProfile: UserProfile? = null,
@@ -119,10 +119,10 @@ class MainViewModel : ViewModel() {
     fun verifyOtp() {
         val phone = _uiState.value.enteredPhone
         val otp = _uiState.value.enteredOtp
-        if (otp.length == 6 || otp == authService.demoOtp || otp.isNotEmpty()) {
+        if (authService.verifyOtp(phone, otp)) {
             _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED) }
         } else {
-            _uiState.update { it.copy(otpError = "Invalid OTP. Use 123456 for demo.") }
+            _uiState.update { it.copy(otpError = "Invalid OTP. Enter the 6-digit verification code.") }
         }
     }
 
@@ -139,6 +139,7 @@ class MainViewModel : ViewModel() {
     }
 
     fun switchRole(role: UserRole) {
+        if (role == UserRole.ADMIN) return
         userService.switchRole(role)
         _uiState.update {
             it.copy(
