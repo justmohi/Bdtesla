@@ -36,7 +36,7 @@ fun AuthScreen(
     modifier: Modifier = Modifier
 ) {
     var step by remember { mutableStateOf(if (currentStep == AuthStep.SPLASH) AuthStep.PHONE_INPUT else currentStep) }
-    var userName by remember { mutableStateOf("তানভীর আহমেদ") }
+    var userName by remember { mutableStateOf("") }
 
     Box(
         modifier = modifier
@@ -202,19 +202,6 @@ fun AuthScreen(
                 }
             }
 
-            // Quick bypass for evaluator ease
-            TextButton(
-                onClick = onSkipAuth,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .testTag("skip_auth_button")
-            ) {
-                Text(
-                    text = if (language == AppLanguage.BANGLA) "ডেমো মোডে সরাসরি প্রবেশ করুন" else "Enter Directly (Demo Mode)",
-                    color = TeslaDarkTextSecondary,
-                    fontSize = 13.sp
-                )
-            }
         }
     }
 }
