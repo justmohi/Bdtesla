@@ -211,9 +211,9 @@ class MainViewModel : ViewModel() {
         val dest = _uiState.value.selectedDestination ?: locationService.kushtiaHubs[3]
         val user = _uiState.value.userProfile
         rideService.requestRide(
-            passengerId = user?.id ?: "USR-1001",
-            passengerName = user?.name ?: "তানভীর আহমেদ",
-            passengerPhone = user?.phone ?: "01711-234567",
+            passengerId = user?.id ?: "LOCAL-USER",
+            passengerName = user?.name ?: "Passenger",
+            passengerPhone = user?.phone ?: phone,
             pickup = pickup,
             destination = dest,
             vehicleType = _uiState.value.selectedVehicle
