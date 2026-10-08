@@ -32,6 +32,7 @@ fun AuthScreen(
     onPhoneChange: (String) -> Unit,
     onOtpChange: (String) -> Unit,
     onSendOtp: () -> Unit,
+    onBackToPhone: () -> Unit,
     onVerifyOtp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -52,7 +53,7 @@ fun AuthScreen(
             // Header
             Column {
                 if (currentStep == AuthStep.OTP_INPUT) {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = onBackToPhone) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TeslaDarkTextPrimary)
                     }
                 }
