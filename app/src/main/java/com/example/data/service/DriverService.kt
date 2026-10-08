@@ -1,12 +1,47 @@
 package com.example.data.service
 
 import com.example.data.model.*
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 class DriverService(private val locationService: LocationService) {
+
+    private val db = FirebaseFirestore.getInstance()
+
+    private fun driverMap(driver: DriverProfile): Map<String, Any?> = mapOf(
+        "driverId" to driver.driverId,
+        "userId" to driver.userId,
+        "fullName" to driver.fullName,
+        "phone" to driver.phone,
+        "vehicleType" to driver.vehicleType.name,
+        "vehicleNumber" to driver.vehicleNumber,
+        "nidNumber" to driver.nidNumber,
+        "licenseNumber" to driver.licenseNumber,
+        "address" to driver.address,
+        "emergencyContact" to driver.emergencyContact,
+        "verificationStatus" to driver.verificationStatus.name,
+        "isOnline" to driver.isOnline,
+        "currentLocation" to mapOf(
+            "latitude" to driver.currentLocation.latitude,
+            "longitude" to driver.currentLocation.longitude,
+            "nameEn" to driver.currentLocation.nameEn,
+            "nameBn" to driver.currentLocation.nameBn
+        ),
+        "driverRating" to driver.driverRating,
+        "totalCompletedTrips" to driver.totalCompletedTrips,
+        "todayEarnings" to driver.todayEarnings,
+        "totalEarnings" to driver.totalEarnings,
+        "updatedAt" to FieldValue.serverTimestamp()
+    )
+
+    private fun persistDriver(driver: DriverProfile) {
+        db.collection("drivers").document(driver.driverId)
+            .set(driverMap(driver))
+    }
 
     // Current driver profile for the logged in user if registered
     private val _currentDriverProfile = MutableStateFlow<DriverProfile?>(null)
@@ -127,6 +162,7 @@ class DriverService(private val locationService: LocationService) {
         )
         _currentDriverProfile.value = newDriver
         _allDrivers.value = _allDrivers.value + newDriver
+        persistDriver(newDriver)
         return newDriver
     }
 
@@ -136,6 +172,7 @@ class DriverService(private val locationService: LocationService) {
             val updated = current.copy(isOnline = isOnline)
             _currentDriverProfile.value = updated
             _allDrivers.value = _allDrivers.value.map { if (it.driverId == current.driverId) updated else it }
+            persistDriver(updated)
         }
     }
 
@@ -147,6 +184,7 @@ class DriverService(private val locationService: LocationService) {
         if (_currentDriverProfile.value?.driverId == driverId) {
             _currentDriverProfile.value = _currentDriverProfile.value?.copy(verificationStatus = DriverVerificationStatus.APPROVED)
         }
+        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let(::persistDriver)
     }
 
     // Admin action: reject driver
@@ -157,6 +195,7 @@ class DriverService(private val locationService: LocationService) {
         if (_currentDriverProfile.value?.driverId == driverId) {
             _currentDriverProfile.value = _currentDriverProfile.value?.copy(verificationStatus = DriverVerificationStatus.REJECTED, isOnline = false)
         }
+        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let(::persistDriver)
     }
 
     fun recordCompletedTrip(driverId: String, tripFare: Double) {
@@ -178,5 +217,6 @@ class DriverService(private val locationService: LocationService) {
                 )
             }
         }
+        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let(::persistDriver)
     }
 }
