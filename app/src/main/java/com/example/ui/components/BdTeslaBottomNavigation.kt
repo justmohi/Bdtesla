@@ -28,9 +28,12 @@ fun BdTeslaBottomNavigation(
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
-        modifier = modifier.testTag("app_bottom_nav"),
-        containerColor = TeslaDarkSurface,
-        tonalElevation = 8.dp
+        modifier = modifier
+            .testTag("app_bottom_nav")
+            .height(78.dp),
+        containerColor = TeslaDarkSurface.copy(alpha = 0.98f),
+        tonalElevation = 12.dp,
+        windowInsets = NavigationBarDefaults.windowInsets
     ) {
         if (activeRole == UserRole.PASSENGER) {
             // Passenger Tabs: Home, Rides, Notifications, Profile
