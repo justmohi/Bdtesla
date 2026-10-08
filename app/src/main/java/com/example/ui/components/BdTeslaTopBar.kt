@@ -204,8 +204,10 @@ fun BdTeslaTopBar(
                                 showRoleMenu = false
                             }
                         )
+                    }
+                }
 
-// Language Toggle Button (বাংলা / EN)
+                // Language Toggle Button (বাংলা / EN)
                 OutlinedButton(
                     onClick = onToggleLanguage,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
