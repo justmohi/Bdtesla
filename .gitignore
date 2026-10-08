@@ -16,3 +16,6 @@
 local.properties
 .env
 debug.keystore
+
+# Firebase Android config (keep local; do not commit)
+app/google-services.json
