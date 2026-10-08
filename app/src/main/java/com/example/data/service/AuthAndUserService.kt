@@ -46,7 +46,7 @@ class AuthService {
 
         val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
             override fun onVerificationCompleted(credential: com.google.firebase.auth.PhoneAuthCredential) {
-                auth.signInWithCredential(credential)
+                firebaseAuth.signInWithCredential(credential)
                     .addOnSuccessListener { }
                     .addOnFailureListener { onError(it.message ?: "Phone verification failed.") }
             }
