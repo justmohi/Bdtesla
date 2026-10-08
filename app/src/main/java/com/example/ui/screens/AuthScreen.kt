@@ -170,16 +170,8 @@ fun AuthScreen(
                                 )
                             }
 
-                            Text(
-                                text = Strings.demoOtpHint(language),
-                                color = TeslaCyanAccent,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-
                             Button(
                                 onClick = {
-                                    if (otp.isEmpty()) onOtpChange("123456")
                                     onVerifyOtp()
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
