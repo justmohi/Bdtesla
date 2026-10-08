@@ -38,15 +38,15 @@ fun BdTeslaTopBar(
     var showRoleMenu by remember { mutableStateOf(false) }
 
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        tonalElevation = 10.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -57,7 +57,7 @@ fun BdTeslaTopBar(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(40.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(
                             Brush.linearGradient(
@@ -131,11 +131,11 @@ fun BdTeslaTopBar(
 
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(18.dp))
                             .background(roleBadgeColor)
                             .border(1.dp, roleTextColor.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
                             .clickable { showRoleMenu = true }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(horizontal = 11.dp, vertical = 7.dp)
                             .testTag("mode_switcher_pill"),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
