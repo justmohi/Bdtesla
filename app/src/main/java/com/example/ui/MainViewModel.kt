@@ -158,6 +158,7 @@ class MainViewModel : ViewModel() {
                     name = userService.currentUser.value.name,
                     phone = firebaseUser?.phoneNumber ?: _uiState.value.enteredPhone
                 )
+                userService.syncCurrentUserToFirestore()
                 _uiState.update {
                     it.copy(
                         authStep = AuthStep.AUTHENTICATED,
