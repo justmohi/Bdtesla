@@ -69,8 +69,8 @@ class MainActivity : ComponentActivity() {
                                 language = uiState.language,
                                 onPhoneChange = { viewModel.setPhoneInput(it) },
                                 onOtpChange = { viewModel.setOtpInput(it) },
-                                onVerifyOtp = { viewModel.verifyOtp() },
-                                onSkipAuth = { viewModel.skipAuthForDemo() }
+                                onSendOtp = { viewModel.sendOtp(this@MainActivity) },
+                                onVerifyOtp = { viewModel.verifyOtp() }
                             )
                         }
 
