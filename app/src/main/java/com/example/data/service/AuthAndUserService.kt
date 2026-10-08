@@ -7,10 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class AuthService {
     // Current authenticated phone number and OTP verification state
-    val demoOtp = "123456"
-
     fun verifyOtp(phone: String, enteredOtp: String): Boolean {
-        // Any 6 digit OTP or matching demo OTP accepts for prototype testing
+        // Phase 2 validates format only; real OTP verification is added with Firebase Auth in Phase 3.
         return enteredOtp.length == 6
     }
 }
