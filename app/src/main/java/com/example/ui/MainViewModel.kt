@@ -33,7 +33,7 @@ enum class DriverTab {
 
 data class MainUiState(
     val language: AppLanguage = AppLanguage.BANGLA,
-    val authStep: AuthStep = AuthStep.SPLASH
+    val authStep: AuthStep = AuthStep.SPLASH,
     val enteredPhone: String = "",
     val enteredOtp: String = "",
     val verificationId: String = "",
