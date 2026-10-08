@@ -70,6 +70,21 @@ service cloud.firestore {
           'updatedAt'
         ]);
 
+      // A passenger may submit a driver application, but can never self-approve.
+      allow update: if isOwner(userId)
+        && resource.data.driverStatus == 'NOT_APPLIED'
+        && request.resource.data.driverStatus == 'PENDING_APPROVAL'
+        && request.resource.data.activeRole == 'PASSENGER'
+        && request.resource.data.passengerRating == resource.data.passengerRating
+        && request.resource.data.totalRidesAsPassenger == resource.data.totalRidesAsPassenger
+        && changedOnly([
+          'name',
+          'phone',
+          'photoUrl',
+          'driverStatus',
+          'updatedAt'
+        ]);
+
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
