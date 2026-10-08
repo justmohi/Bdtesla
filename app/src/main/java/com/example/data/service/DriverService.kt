@@ -10,7 +10,7 @@ import java.util.UUID
 
 class DriverService(private val locationService: LocationService) {
 
-    private val db = FirebaseFirestore.getInstance()
+    private val db: FirebaseFirestore? by lazy { runCatching { FirebaseFirestore.getInstance() }.getOrNull() }
 
     private fun driverMap(driver: DriverProfile): Map<String, Any?> = mapOf(
         "driverId" to driver.driverId,
@@ -39,7 +39,7 @@ class DriverService(private val locationService: LocationService) {
     )
 
     private fun persistDriver(driver: DriverProfile) {
-        db.collection("drivers").document(driver.driverId)
+        db?.collection("drivers")?.document(driver.driverId)
             .set(driverMap(driver))
     }
 
