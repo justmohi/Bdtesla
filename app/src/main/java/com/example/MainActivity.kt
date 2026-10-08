@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
                         AuthStep.SPLASH -> {
                             SplashScreen(
                                 language = uiState.language,
-                                onGetStarted = { viewModel.setPhoneInput("01711234567") }
+                                onGetStarted = { viewModel.setPhoneInput("") }
                             )
                         }
 
