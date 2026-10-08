@@ -3,6 +3,7 @@ package com.example.data.service
 import com.example.data.model.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,8 @@ class RideService(
 ) {
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val db: FirebaseFirestore? by lazy { runCatching { FirebaseFirestore.getInstance() }.getOrNull() }
+    private var passengerRideListener: ListenerRegistration? = null
+    private var driverRideListener: ListenerRegistration? = null
 
     private fun persistRide(ride: RideRequest) {
         val data = mapOf(
@@ -130,6 +133,82 @@ class RideService(
             )
         )
         _rideHistory.value = pastRides
+    }
+
+    private fun mapRide(document: com.google.firebase.firestore.DocumentSnapshot): RideRequest? {
+        val d = document.data ?: return null
+        fun point(key: String): GeoPoint? {
+            val p = d[key] as? Map<*, *> ?: return null
+            return GeoPoint(
+                latitude = (p["latitude"] as? Number)?.toDouble() ?: return null,
+                longitude = (p["longitude"] as? Number)?.toDouble() ?: return null,
+                nameEn = p["nameEn"] as? String ?: "Location",
+                nameBn = p["nameBn"] as? String ?: "লোকেশন"
+            )
+        }
+        val pickup = point("pickup") ?: return null
+        val destination = point("destination") ?: return null
+        val driverLocation = point("driverLocation")
+        return RideRequest(
+            id = d["id"] as? String ?: document.id,
+            passengerId = d["passengerId"] as? String ?: return null,
+            passengerName = d["passengerName"] as? String ?: "",
+            passengerPhone = d["passengerPhone"] as? String ?: "",
+            driverId = d["driverId"] as? String,
+            driverName = d["driverName"] as? String,
+            driverPhone = d["driverPhone"] as? String,
+            vehicleType = runCatching { VehicleType.valueOf(d["vehicleType"] as? String ?: VehicleType.AUTO.name) }.getOrDefault(VehicleType.AUTO),
+            vehicleNumber = d["vehicleNumber"] as? String ?: "",
+            pickup = pickup,
+            destination = destination,
+            estimatedFare = (d["estimatedFare"] as? Number)?.toDouble() ?: 0.0,
+            distanceKm = (d["distanceKm"] as? Number)?.toDouble() ?: 0.0,
+            estimatedMinutes = (d["estimatedMinutes"] as? Number)?.toInt() ?: 0,
+            status = runCatching { RideStatus.valueOf(d["status"] as? String ?: RideStatus.NONE.name) }.getOrDefault(RideStatus.NONE),
+            driverLocation = driverLocation,
+            paymentMethod = d["paymentMethod"] as? String ?: "CASH",
+            isPaid = d["isPaid"] as? Boolean ?: false,
+            driverRating = (d["driverRating"] as? Number)?.toFloat(),
+            passengerRating = (d["passengerRating"] as? Number)?.toFloat(),
+            createdAt = (d["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            completedAt = (d["completedAt"] as? Number)?.toLong()
+        )
+    }
+
+    fun observePassengerRides(passengerId: String) {
+        passengerRideListener?.remove()
+        passengerRideListener = db?.collection("rides")
+            ?.whereEqualTo("passengerId", passengerId)
+            ?.addSnapshotListener { snapshot, _ ->
+                val rides = snapshot?.documents?.mapNotNull(::mapRide).orEmpty()
+                val active = rides
+                    .filter { it.status != RideStatus.TRIP_COMPLETED && it.status != RideStatus.CANCELLED }
+                    .maxByOrNull { it.createdAt }
+                if (active != null) _activeRide.value = active
+                _rideHistory.value = rides.filter {
+                    it.status == RideStatus.TRIP_COMPLETED || it.status == RideStatus.CANCELLED
+                }.sortedByDescending { it.createdAt }
+            }
+    }
+
+    fun observeDriverRides(driverId: String) {
+        driverRideListener?.remove()
+        driverRideListener = db?.collection("rides")
+            ?.whereEqualTo("driverId", driverId)
+            ?.addSnapshotListener { snapshot, _ ->
+                val rides = snapshot?.documents?.mapNotNull(::mapRide).orEmpty()
+                val active = rides
+                    .filter { it.status != RideStatus.TRIP_COMPLETED && it.status != RideStatus.CANCELLED }
+                    .maxByOrNull { it.createdAt }
+                if (active != null) _activeRide.value = active
+            }
+    }
+
+    fun stopRealtimeSync() {
+        passengerRideListener?.remove()
+        driverRideListener?.remove()
+        passengerRideListener = null
+        driverRideListener = null
     }
 
     fun requestRide(
