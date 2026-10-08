@@ -97,7 +97,7 @@ fun AuthScreen(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    when (step) {
+                    when (currentStep) {
                         AuthStep.PHONE_INPUT, AuthStep.SPLASH -> {
                             Text(
                                 text = Strings.enterPhone(language),
