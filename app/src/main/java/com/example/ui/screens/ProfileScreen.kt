@@ -239,14 +239,6 @@ fun ProfileScreen(
                     subtitle = "BD TESLA Kushtia Platform",
                     onClick = { showTermsDialog = true }
                 )
-                HorizontalDivider(color = TeslaDarkCardBorder, modifier = Modifier.padding(horizontal = 16.dp))
-
-                ProfileOptionItem(
-                    icon = Icons.Default.AdminPanelSettings,
-                    title = if (language == AppLanguage.BANGLA) "অ্যাডমিন প্যানেল" else "Admin Dashboard",
-                    subtitle = "Manage drivers & fares",
-                    onClick = { onSwitchRole(UserRole.ADMIN) }
-                )
             }
         }
     }
@@ -262,7 +254,7 @@ fun ProfileScreen(
                     "📍 ঠিকানা: মজমপুর গেট, এনএস রোড, কুষ্টিয়া সদর\n" +
                     "📞 হটলাইন: +880 1700-112233\n" +
                     "✉️ ইমেইল: support@bdtesla-kushtia.com\n\n" +
-                    "২৪/৭ গ্রাহক ও চালক সেবা চালু রয়েছে।",
+                    "সহায়তার জন্য অ্যাপের অফিসিয়াল সাপোর্ট চ্যানেল ব্যবহার করুন।",
                     color = TeslaDarkTextPrimary
                 )
             },
