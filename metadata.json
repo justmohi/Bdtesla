@@ -1,6 +1,5 @@
 {
   "name": "BD TESLA",
-  "description": "Smart Ride for Kushtia - Modern ride-booking app for Passenger and Driver modes supporting Auto and Pakhi Van",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "Smart Ride for Kushtia - Ride-booking app for Passenger and Driver modes supporting Auto, Rickshaw and Pakhi Van",
+  "requestFramePermissions": []
 }
