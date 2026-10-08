@@ -1,0 +1,17 @@
+{
+  "name": "bdtesla-api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.44.0",
+    "typescript": "^5.9.3"
+  }
+}
