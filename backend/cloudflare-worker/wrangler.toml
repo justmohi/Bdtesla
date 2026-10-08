@@ -1,0 +1,9 @@
+name = "bdtesla-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-08"
+
+[vars]
+API_ENV = "production"
+
+# Set this securely with:
+# wrangler secret put FIREBASE_PROJECT_ID
