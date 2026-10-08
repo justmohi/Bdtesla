@@ -17,7 +17,8 @@ service cloud.firestore {
     }
 
     match /drivers/{driverId} {
-      allow read: if signedIn();
+      allow read: if signedIn() &&
+        (resource.data.userId == request.auth.uid || isAdmin());
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if signedIn() &&
         (resource.data.userId == request.auth.uid || isAdmin());
@@ -32,7 +33,8 @@ service cloud.firestore {
          isAdmin());
       allow update: if signedIn() &&
         (resource.data.passengerId == request.auth.uid ||
-         resource.data.driverId == request.auth.uid ||
+         (resource.data.driverId != null &&
+          get(/databases/$(database)/documents/drivers/$(resource.data.driverId)).data.userId == request.auth.uid) ||
          isAdmin());
       allow delete: if isAdmin();
     }
