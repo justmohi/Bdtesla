@@ -31,12 +31,11 @@ fun AuthScreen(
     language: AppLanguage,
     onPhoneChange: (String) -> Unit,
     onOtpChange: (String) -> Unit,
+    onSendOtp: () -> Unit,
     onVerifyOtp: () -> Unit,
-    onSkipAuth: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var step by remember { mutableStateOf(if (currentStep == AuthStep.SPLASH) AuthStep.PHONE_INPUT else currentStep) }
-    var userName by remember { mutableStateOf("") }
+
 
     Box(
         modifier = modifier
@@ -52,8 +51,8 @@ fun AuthScreen(
         ) {
             // Header
             Column {
-                if (step == AuthStep.OTP_INPUT) {
-                    IconButton(onClick = { step = AuthStep.PHONE_INPUT }) {
+                if (currentStep == AuthStep.OTP_INPUT) {
+                    IconButton(onClick = { }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TeslaDarkTextPrimary)
                     }
                 }
@@ -66,7 +65,7 @@ fun AuthScreen(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = when (step) {
+                    text = when (currentStep) {
                         AuthStep.PHONE_INPUT -> if (language == AppLanguage.BANGLA) "মোবাইল নম্বর দিয়ে লগইন করুন" else "Login with Mobile Number"
                         AuthStep.OTP_INPUT -> if (language == AppLanguage.BANGLA) "ওটিপি কোড যাচাই করুন" else "Verify OTP Code"
                         else -> if (language == AppLanguage.BANGLA) "প্রোফাইল সেটআপ" else "Profile Setup"
@@ -125,7 +124,7 @@ fun AuthScreen(
                             )
 
                             Button(
-                                onClick = { step = AuthStep.OTP_INPUT },
+                                onClick = onSendOtp,
                                 colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -151,7 +150,7 @@ fun AuthScreen(
                             OutlinedTextField(
                                 value = otp,
                                 onValueChange = onOtpChange,
-                                placeholder = { Text("123456") },
+                                placeholder = { Text("6-digit OTP") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Security, contentDescription = null, tint = TeslaGreenNeon)
                                 },
