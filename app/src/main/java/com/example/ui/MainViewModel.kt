@@ -94,6 +94,17 @@ class MainViewModel : ViewModel() {
                         activeRole = user.activeRole
                     )
                 }
+                if (user.id != "LOCAL-USER") {
+                    rideService.observePassengerRides(user.id)
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            driverService.currentDriverProfile.collect { driver ->
+                if (driver != null) {
+                    rideService.observeDriverRides(driver.driverId)
+                }
             }
         }
 
@@ -108,6 +119,11 @@ class MainViewModel : ViewModel() {
                 _uiState.update { it.copy(incomingDriverRequest = req) }
             }
         }
+    }
+
+    override fun onCleared() {
+        rideService.stopRealtimeSync()
+        super.onCleared()
     }
 
     fun toggleLanguage() {
