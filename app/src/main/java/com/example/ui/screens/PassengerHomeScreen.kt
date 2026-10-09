@@ -57,6 +57,7 @@ fun PassengerHomeScreen(
     onOpenRating: () -> Unit,
     onCallDriver: (String, String) -> Unit,
     onOpenChat: () -> Unit,
+    onRouteCalculated: (Double, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var showLocationSheet by remember { mutableStateOf(false) }
@@ -135,6 +136,7 @@ fun PassengerHomeScreen(
             destination = destination,
             activeRide = activeRide,
             language = language,
+            onRouteCalculated = onRouteCalculated,
             modifier = Modifier.fillMaxSize()
         )
 
