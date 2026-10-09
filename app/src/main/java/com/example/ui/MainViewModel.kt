@@ -1,5 +1,6 @@
 package com.example.ui
 
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.localization.AppLanguage
@@ -169,7 +170,7 @@ class MainViewModel : ViewModel() {
         )
     }
 
-    fun signInWithGoogle(activity: android.app.Activity) {
+    fun signInWithGoogle(activity: ComponentActivity) {
         authService.signInWithGoogle(
             activity = activity,
             onSuccess = {
