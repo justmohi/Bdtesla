@@ -172,8 +172,11 @@ class DriverService(private val locationService: LocationService) {
     }
 
     fun updateCurrentLocation(latitude: Double, longitude: Double) {
-        if (latitude !in 23.55..24.10 || longitude !in 88.65..89.35) return
         val current = _currentDriverProfile.value ?: return
+        if (latitude !in 23.55..24.10 || longitude !in 88.65..89.35) {
+            if (current.isOnline) setDriverOnline(false)
+            return
+        }
         if (!current.isOnline || current.verificationStatus != DriverVerificationStatus.APPROVED) return
         val updated = current.copy(
             currentLocation = GeoPoint(
