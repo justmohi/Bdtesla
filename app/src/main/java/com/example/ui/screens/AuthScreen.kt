@@ -43,8 +43,12 @@ fun AuthScreen(
             error.contains("region") ||
             error.contains("sign-in provider is disabled") ||
             error.contains("operation is not allowed") ||
-            error.contains("quota")
+            error.contains("quota") ||
+            error.contains("billing") ||
+            error.contains("billing not enabled") ||
+            error.contains("billing account")
     } == true
+    val displayedOtpError = if (showGoogleFallback) null else otpError
 
     Box(
         modifier = modifier
@@ -132,8 +136,8 @@ fun AuthScreen(
                                 singleLine = true
                             )
 
-                            if (otpError != null) {
-                                Text(text = otpError, color = StatusDanger, fontSize = 12.sp)
+                            if (displayedOtpError != null) {
+                                Text(text = displayedOtpError, color = StatusDanger, fontSize = 12.sp)
                             }
 
                             if (showGoogleFallback) {
