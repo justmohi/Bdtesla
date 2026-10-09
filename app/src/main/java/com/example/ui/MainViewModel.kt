@@ -52,6 +52,8 @@ data class MainUiState(
     val selectedPickup: GeoPoint? = null,
     val selectedDestination: GeoPoint? = null,
     val selectedVehicle: VehicleType = VehicleType.AUTO,
+    val routeDistanceKm: Double? = null,
+    val routeMinutes: Int? = null,
     val showDestinationPicker: Boolean = false,
     val activeRide: RideRequest? = null,
     val incomingDriverRequest: RideRequest? = null,
@@ -285,11 +287,17 @@ class MainViewModel : ViewModel() {
     }
 
     fun setPickup(geoPoint: GeoPoint) {
-        _uiState.update { it.copy(selectedPickup = geoPoint) }
+        _uiState.update { it.copy(selectedPickup = geoPoint, routeDistanceKm = null, routeMinutes = null) }
     }
 
     fun setDestination(geoPoint: GeoPoint) {
-        _uiState.update { it.copy(selectedDestination = geoPoint, showDestinationPicker = false) }
+        _uiState.update { it.copy(selectedDestination = geoPoint, showDestinationPicker = false, routeDistanceKm = null, routeMinutes = null) }
+    }
+
+    fun setRouteEstimate(distanceKm: Double, minutes: Int) {
+        if (distanceKm > 0.0 && minutes > 0) {
+            _uiState.update { it.copy(routeDistanceKm = distanceKm, routeMinutes = minutes) }
+        }
     }
 
     fun toggleDestinationPicker(show: Boolean) {
@@ -307,7 +315,9 @@ class MainViewModel : ViewModel() {
             passengerPhone = user?.phone ?: _uiState.value.enteredPhone,
             pickup = pickup,
             destination = dest,
-            vehicleType = _uiState.value.selectedVehicle
+            vehicleType = _uiState.value.selectedVehicle,
+            routeDistanceKm = _uiState.value.routeDistanceKm,
+            routeMinutes = _uiState.value.routeMinutes
         )
     }
 
@@ -331,8 +341,7 @@ class MainViewModel : ViewModel() {
     }
 
     fun driverAcceptRequest() {
-        val currentDriver = driverService.currentDriverProfile.value
-            ?: driverService.allDrivers.value.first()
+        val currentDriver = driverService.currentDriverProfile.value ?: return
         rideService.driverAcceptRequest(currentDriver)
     }
 
