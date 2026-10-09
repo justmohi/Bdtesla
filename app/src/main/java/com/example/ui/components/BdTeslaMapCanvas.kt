@@ -67,7 +67,7 @@ fun BdTeslaMapCanvas(
         val end = destination
         if (start == null || end == null) return@LaunchedEffect
 
-        routePoints = withContext(Dispatchers.IO) {
+        val result = withContext(Dispatchers.IO) {
             runCatching {
                 val url = "https://router.project-osrm.org/route/v1/driving/" +
                     "${start.longitude},${start.latitude};${end.longitude},${end.latitude}" +
@@ -82,17 +82,25 @@ fun BdTeslaMapCanvas(
                     val routes = JSONObject(body).optJSONArray("routes")
                         ?: throw IllegalStateException("No route found")
                     if (routes.length() == 0) throw IllegalStateException("No route found")
-                    val coordinates = routes.getJSONObject(0)
-                        .getJSONObject("geometry")
-                        .getJSONArray("coordinates")
-                    buildList {
+                    val route = routes.getJSONObject(0)
+                    val coordinates = route.getJSONObject("geometry").getJSONArray("coordinates")
+                    val points = buildList {
                         for (i in 0 until coordinates.length()) {
                             val pair = coordinates.getJSONArray(i)
                             add(OsmGeoPoint(pair.getDouble(1), pair.getDouble(0)))
                         }
                     }
+                    points to Pair(
+                        route.optDouble("distance", 0.0) / 1000.0,
+                        (route.optDouble("duration", 0.0) / 60.0).toInt().coerceAtLeast(1)
+                    )
                 }
-            }.getOrDefault(emptyList())
+            }.getOrNull()
+        }
+
+        if (result != null) {
+            routePoints = result.first
+            onRouteCalculated(result.second.first, result.second.second)
         }
     }
 
@@ -116,8 +124,8 @@ fun BdTeslaMapCanvas(
             if (routePoints.size > 1) {
                 val route = Polyline(map).apply {
                     setPoints(routePoints)
-                    outlinePaint.color = AndroidColor.rgb(0, 220, 130)
-                    outlinePaint.strokeWidth = 9f
+                    setColor(AndroidColor.rgb(0, 220, 130))
+                    setWidth(9f)
                     title = if (language == AppLanguage.BANGLA) "যাত্রার রুট" else "Trip route"
                 }
                 map.overlays.add(route)
