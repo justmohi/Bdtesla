@@ -22,6 +22,7 @@ class AuthService {
             clean.startsWith("+880") -> clean
             clean.startsWith("880") -> "+$clean"
             clean.startsWith("0") && clean.length == 11 -> "+88$clean"
+            clean.matches(Regex("^1[3-9]\\d{8}$")) -> "+880$clean"
             else -> clean
         }
     }
