@@ -172,7 +172,8 @@ class MainActivity : ComponentActivity() {
                                                         viewModel.openCallDialog(name, phone)
                                                     },
                                                     onOpenChat = { viewModel.openChat() },
-                                                    onRouteCalculated = { km, minutes -> viewModel.setRouteEstimate(km, minutes) }
+                                                    onRouteCalculated = { km, minutes -> viewModel.setRouteEstimate(km, minutes) },
+                                                    hasRealRoute = uiState.routeDistanceKm != null
                                                 )
                                             }
 
