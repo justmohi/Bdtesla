@@ -232,8 +232,14 @@ class RideService(
             estimatedMinutes = minutes,
             status = RideStatus.SEARCHING_DRIVER
         )
-        _activeRide.value = ride
-        persistRide(ride)
+        _rideError.value = null
+        persistRide(
+            ride,
+            onSuccess = { _activeRide.value = ride },
+            onFailure = { error ->
+                _rideError.value = error.localizedMessage ?: "Ride booking failed. Please try again."
+            }
+        )
 
         // The driver's separate authenticated session receives this request from Firestore.
         // No client-side or mock driver is assigned automatically.
