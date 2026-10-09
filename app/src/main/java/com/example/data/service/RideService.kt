@@ -20,8 +20,18 @@ class RideService(
     private var passengerRideListener: ListenerRegistration? = null
     private var driverRideListener: ListenerRegistration? = null
     private var availableRideListener: ListenerRegistration? = null
+    private val _rideError = MutableStateFlow<String?>(null)
+    val rideError: StateFlow<String?> = _rideError.asStateFlow()
 
-    private fun persistRide(ride: RideRequest) {
+    fun reportError(message: String) {
+        _rideError.value = message
+    }
+
+    private fun persistRide(
+        ride: RideRequest,
+        onSuccess: (() -> Unit)? = null,
+        onFailure: ((Exception) -> Unit)? = null
+    ) {
         val data = mapOf(
             "id" to ride.id,
             "passengerId" to ride.passengerId,
@@ -48,7 +58,19 @@ class RideService(
             "completedAt" to ride.completedAt,
             "updatedAt" to FieldValue.serverTimestamp()
         )
-        db?.collection("rides")?.document(ride.id)?.set(data)
+        val firestore = db
+        if (firestore == null) {
+            onFailure?.invoke(IllegalStateException("Firebase Firestore is unavailable."))
+            return
+        }
+        firestore.collection("rides").document(ride.id).set(data)
+            .addOnSuccessListener {
+                onSuccess?.invoke()
+            }
+            .addOnFailureListener { error ->
+                if (onFailure != null) onFailure.invoke(error)
+                else _rideError.value = error.localizedMessage ?: "Ride update failed. Please try again."
+            }
     }
     private var trackingJob: Job? = null
 
