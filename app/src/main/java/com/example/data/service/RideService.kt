@@ -128,12 +128,23 @@ class RideService(
         )
     }
 
-    fun observePassengerRides(passengerId: String) {
+    fun observePassengerRides(passengerId: String, passengerPhone: String = "") {
         passengerRideListener?.remove()
         passengerRideListener = db?.collection("rides")
             ?.whereEqualTo("passengerId", passengerId)
             ?.addSnapshotListener { snapshot, _ ->
-                val rides = snapshot?.documents?.mapNotNull(::mapRide).orEmpty()
+                val documents = snapshot?.documents.orEmpty()
+                if (passengerPhone.isNotBlank()) {
+                    documents.filter { document ->
+                        document.getString("passengerId") == passengerId &&
+                            document.getString("driverId") != null &&
+                            document.getString("passengerPhone").isNullOrBlank()
+                    }.forEach { document ->
+                        // Reveal passenger contact only after a real driver has accepted the booking.
+                        document.reference.update("passengerPhone", passengerPhone)
+                    }
+                }
+                val rides = documents.mapNotNull(::mapRide)
                 val active = rides
                     .filter { it.status != RideStatus.TRIP_COMPLETED && it.status != RideStatus.CANCELLED }
                     .maxByOrNull { it.createdAt }
