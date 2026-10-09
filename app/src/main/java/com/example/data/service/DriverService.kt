@@ -206,7 +206,13 @@ class DriverService(private val locationService: LocationService) {
         if (_currentDriverProfile.value?.driverId == driverId) {
             _currentDriverProfile.value = _currentDriverProfile.value?.copy(verificationStatus = DriverVerificationStatus.APPROVED)
         }
-        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let(::persistDriver)
+        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let { driver ->
+            persistDriver(driver)
+            // Keep the user profile's approval state in sync; the security rules use this field for the request queue.
+            db?.collection("users")?.document(driver.userId)?.update(
+                mapOf("driverStatus" to DriverVerificationStatus.APPROVED.name, "updatedAt" to FieldValue.serverTimestamp())
+            )
+        }
     }
 
     // Admin action: reject driver
@@ -217,7 +223,12 @@ class DriverService(private val locationService: LocationService) {
         if (_currentDriverProfile.value?.driverId == driverId) {
             _currentDriverProfile.value = _currentDriverProfile.value?.copy(verificationStatus = DriverVerificationStatus.REJECTED, isOnline = false)
         }
-        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let(::persistDriver)
+        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let { driver ->
+            persistDriver(driver)
+            db?.collection("users")?.document(driver.userId)?.update(
+                mapOf("driverStatus" to DriverVerificationStatus.REJECTED.name, "updatedAt" to FieldValue.serverTimestamp())
+            )
+        }
     }
 
     fun recordCompletedTrip(driverId: String, tripFare: Double) {
