@@ -231,25 +231,5 @@ class DriverService(private val locationService: LocationService) {
         }
     }
 
-    fun recordCompletedTrip(driverId: String, tripFare: Double) {
-        _allDrivers.value = _allDrivers.value.map { driver ->
-            if (driver.driverId == driverId) {
-                driver.copy(
-                    todayEarnings = driver.todayEarnings + tripFare,
-                    totalEarnings = driver.totalEarnings + tripFare,
-                    totalCompletedTrips = driver.totalCompletedTrips + 1
-                )
-            } else driver
-        }
-        if (_currentDriverProfile.value?.driverId == driverId) {
-            _currentDriverProfile.value = _currentDriverProfile.value?.let {
-                it.copy(
-                    todayEarnings = it.todayEarnings + tripFare,
-                    totalEarnings = it.totalEarnings + tripFare,
-                    totalCompletedTrips = it.totalCompletedTrips + 1
-                )
-            }
-        }
-        _allDrivers.value.firstOrNull { it.driverId == driverId }?.let(::persistDriver)
-    }
+
 }
