@@ -111,13 +111,14 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Calculate estimated fares
-                val pickup = uiState.selectedPickup ?: viewModel.locationService.kushtiaHubs[0]
-                val dest = uiState.selectedDestination ?: viewModel.locationService.kushtiaHubs[3]
-                val distanceKm = uiState.routeDistanceKm ?: viewModel.locationService.calculateDistanceKm(pickup, dest)
-                val estMinutes = uiState.routeMinutes ?: viewModel.locationService.estimateMinutes(distanceKm)
-                val autoFare = viewModel.fareService.calculateEstimatedFare(VehicleType.AUTO, distanceKm)
-                val rickshawFare = viewModel.fareService.calculateEstimatedFare(VehicleType.RICKSHAW, distanceKm)
-                val vanFare = viewModel.fareService.calculateEstimatedFare(VehicleType.PAKHI_VAN, distanceKm)
+                val pickup = uiState.selectedPickup
+                val dest = uiState.selectedDestination
+                val hasRealRoute = uiState.routeDistanceKm != null && uiState.routeMinutes != null
+                val distanceKm = uiState.routeDistanceKm ?: 0.0
+                val estMinutes = uiState.routeMinutes ?: 0
+                val autoFare = if (hasRealRoute) viewModel.fareService.calculateEstimatedFare(VehicleType.AUTO, distanceKm) else 0.0
+                val rickshawFare = if (hasRealRoute) viewModel.fareService.calculateEstimatedFare(VehicleType.RICKSHAW, distanceKm) else 0.0
+                val vanFare = if (hasRealRoute) viewModel.fareService.calculateEstimatedFare(VehicleType.PAKHI_VAN, distanceKm) else 0.0
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
