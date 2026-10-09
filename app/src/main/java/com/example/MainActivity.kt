@@ -1,7 +1,12 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Looper
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -10,7 +15,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.example.data.model.UserRole
 import com.example.data.model.VehicleType
 import com.example.ui.*
@@ -38,6 +49,66 @@ class MainActivity : ComponentActivity() {
                 val driverProfile by viewModel.driverService.currentDriverProfile.collectAsStateWithLifecycle()
                 val chatMessages by viewModel.chatService.messages.collectAsStateWithLifecycle()
                 val notifications by viewModel.notificationService.notifications.collectAsStateWithLifecycle()
+
+                val driverLocationClient = remember {
+                    LocationServices.getFusedLocationProviderClient(this@MainActivity)
+                }
+                var driverLocationPermissionGranted by remember {
+                    mutableStateOf(
+                        ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                    )
+                }
+                val driverLocationPermissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions()
+                ) { grants ->
+                    driverLocationPermissionGranted =
+                        grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                            grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                    if (!driverLocationPermissionGranted && driverProfile?.isOnline == true) {
+                        viewModel.toggleDriverOnline(false)
+                    }
+                }
+                val driverLocationRequest = remember {
+                    LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5_000L)
+                        .setMinUpdateIntervalMillis(3_000L)
+                        .build()
+                }
+                val driverLocationCallback = remember(viewModel) {
+                    object : LocationCallback() {
+                        override fun onLocationResult(result: LocationResult) {
+                            result.locations.forEach { location ->
+                                viewModel.driverService.updateCurrentLocation(location.latitude, location.longitude)
+                            }
+                        }
+                    }
+                }
+
+                LaunchedEffect(driverProfile?.isOnline, driverLocationPermissionGranted) {
+                    if (driverProfile?.isOnline == true && !driverLocationPermissionGranted) {
+                        driverLocationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                    }
+                }
+
+                DisposableEffect(driverProfile?.isOnline, driverLocationPermissionGranted, driverLocationCallback) {
+                    if (driverProfile?.isOnline == true && driverLocationPermissionGranted) {
+                        runCatching {
+                            driverLocationClient.requestLocationUpdates(
+                                driverLocationRequest,
+                                driverLocationCallback,
+                                Looper.getMainLooper()
+                            )
+                        }
+                    }
+                    onDispose {
+                        driverLocationClient.removeLocationUpdates(driverLocationCallback)
+                    }
+                }
 
                 // Calculate estimated fares
                 val pickup = uiState.selectedPickup ?: viewModel.locationService.kushtiaHubs[0]
