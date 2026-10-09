@@ -46,6 +46,7 @@ fun PassengerHomeScreen(
     pickup: GeoPoint?,
     destination: GeoPoint?,
     selectedVehicle: VehicleType,
+    selectedPassengerCount: Int = 1,
     estimatedFareAuto: Double,
     estimatedFareRickshaw: Double,
     estimatedFareVan: Double,
@@ -58,6 +59,7 @@ fun PassengerHomeScreen(
     onSelectPickup: (GeoPoint) -> Unit,
     onSelectDestination: (GeoPoint) -> Unit,
     onSelectVehicle: (VehicleType) -> Unit,
+    onSelectPassengerCount: (Int) -> Unit = {},
     onRequestRide: () -> Unit,
     onCancelRide: () -> Unit,
     onConfirmPayment: () -> Unit,
@@ -359,6 +361,77 @@ fun PassengerHomeScreen(
                             )
                         }
 
+                        // Passenger count selector with vehicle capacity validation.
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = TeslaDarkCard)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Text(
+                                            text = if (language == AppLanguage.BANGLA) "কতজন যাত্রী যাবেন?" else "How many passengers?",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TeslaDarkTextPrimary
+                                        )
+                                        Text(
+                                            text = if (language == AppLanguage.BANGLA) "শিশুসহ মোট যাত্রী সংখ্যা" else "Total passengers, including children",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TeslaDarkTextSecondary
+                                        )
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        FilledTonalIconButton(
+                                            onClick = { onSelectPassengerCount((selectedPassengerCount - 1).coerceAtLeast(1)) },
+                                            enabled = selectedPassengerCount > 1,
+                                            modifier = Modifier.size(40.dp)
+                                        ) {
+                                            Icon(Icons.Default.Remove, contentDescription = if (language == AppLanguage.BANGLA) "যাত্রী কমান" else "Remove passenger")
+                                        }
+                                        Text(
+                                            text = selectedPassengerCount.toString(),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = TeslaGreenNeon,
+                                            modifier = Modifier.widthIn(min = 22.dp)
+                                        )
+                                        FilledTonalIconButton(
+                                            onClick = { onSelectPassengerCount((selectedPassengerCount + 1).coerceAtMost(6)) },
+                                            enabled = selectedPassengerCount < 6,
+                                            modifier = Modifier.size(40.dp)
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = if (language == AppLanguage.BANGLA) "যাত্রী বাড়ান" else "Add passenger")
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = if (language == AppLanguage.BANGLA)
+                                        "নির্বাচিত ${selectedVehicle.labelBn}: সর্বোচ্চ ${selectedVehicle.maxPassengers} জন যাত্রী"
+                                    else "Selected ${selectedVehicle.labelEn}: up to ${selectedVehicle.maxPassengers} passengers",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (selectedPassengerCount <= selectedVehicle.maxPassengers) TeslaGreenNeon else StatusDanger
+                                )
+                                if (selectedPassengerCount > selectedVehicle.maxPassengers) {
+                                    Text(
+                                        text = if (language == AppLanguage.BANGLA)
+                                            "এই গাড়িতে এতজন যাত্রী নেওয়া যাবে না। বেশি আসনের গাড়ি নির্বাচন করুন।"
+                                        else "This vehicle cannot carry that many passengers. Choose a larger vehicle.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = StatusDanger
+                                    )
+                                }
+                            }
+                        }
+
                         // Vehicle Selection Cards: Auto, Rickshaw, and Pakhi Van
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             VehicleSelectorCard(
@@ -411,7 +484,7 @@ fun PassengerHomeScreen(
                         // Request Ride Action Button
                         Button(
                             onClick = onRequestRide,
-                            enabled = hasRealRoute,
+                            enabled = hasRealRoute && selectedPassengerCount <= selectedVehicle.maxPassengers,
                             colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier
@@ -498,6 +571,21 @@ fun PassengerHomeScreen(
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = TeslaGreenNeon
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.People, contentDescription = null, tint = TeslaCyanAccent)
+                            Text(
+                                text = if (language == AppLanguage.BANGLA)
+                                    "${activeRide.passengerCount} জন যাত্রী • ${activeRide.vehicleType.labelBn}"
+                                else "${activeRide.passengerCount} passengers • ${activeRide.vehicleType.labelEn}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TeslaDarkTextSecondary
                             )
                         }
 
