@@ -25,6 +25,7 @@ import com.example.R
 import com.example.data.localization.AppLanguage
 import com.example.data.localization.Strings
 import com.example.ui.theme.*
+import com.example.ui.components.BdTeslaBrandMark
 
 @Composable
 fun SplashScreen(
@@ -54,22 +55,7 @@ fun SplashScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                Brush.linearGradient(listOf(TeslaGreenNeon, TeslaCyanAccent))
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Bolt,
-                            contentDescription = "Bolt",
-                            tint = TeslaDarkBg,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
+                    BdTeslaBrandMark(size = 52.dp, iconScale = 0.60f)
                     Text(
                         text = "BD TESLA",
                         style = MaterialTheme.typography.headlineLarge,
