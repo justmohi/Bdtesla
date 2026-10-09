@@ -19,6 +19,9 @@ class RideService(
     private var passengerRideListener: ListenerRegistration? = null
     private var driverRideListener: ListenerRegistration? = null
     private var availableRideListener: ListenerRegistration? = null
+    private var observingDriverId: String? = null
+    private var observingDriverVehicleType: VehicleType? = null
+    private var observingDriverOnline: Boolean? = null
     private val _rideError = MutableStateFlow<String?>(null)
     val rideError: StateFlow<String?> = _rideError.asStateFlow()
 
@@ -152,6 +155,18 @@ class RideService(
     }
 
     fun observeDriverRides(driverId: String) {
+        val driver = driverService.currentDriverProfile.value ?: return
+        val configurationUnchanged =
+            observingDriverId == driverId &&
+                observingDriverVehicleType == driver.vehicleType &&
+                observingDriverOnline == driver.isOnline &&
+                driverRideListener != null &&
+                (!driver.isOnline || availableRideListener != null)
+        if (configurationUnchanged) return
+
+        observingDriverId = driverId
+        observingDriverVehicleType = driver.vehicleType
+        observingDriverOnline = driver.isOnline
         driverRideListener?.remove()
         driverRideListener = db?.collection("rides")
             ?.whereEqualTo("driverId", driverId)
@@ -165,7 +180,6 @@ class RideService(
 
         // Real incoming requests are loaded from Firestore; no local/mock request is generated.
         availableRideListener?.remove()
-        val driver = driverService.currentDriverProfile.value ?: return
         if (!driver.isOnline || driver.verificationStatus != DriverVerificationStatus.APPROVED) return
         availableRideListener = db?.collection("rides")
             ?.whereEqualTo("status", RideStatus.SEARCHING_DRIVER.name)
@@ -186,6 +200,9 @@ class RideService(
         passengerRideListener = null
         driverRideListener = null
         availableRideListener = null
+        observingDriverId = null
+        observingDriverVehicleType = null
+        observingDriverOnline = null
     }
 
     fun requestRide(
