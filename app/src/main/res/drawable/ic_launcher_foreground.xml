@@ -4,11 +4,11 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Crisp adaptive launcher mark; vector scales cleanly across Android densities. -->
+    <!-- Keep the artwork inside the adaptive-icon safe area. -->
     <path
         android:fillColor="#00E676"
-        android:pathData="M54,10 C78,10 98,30 98,54 C98,78 78,98 54,98 C30,98 10,78 10,54 C10,30 30,10 54,10 Z" />
+        android:pathData="M54,18 C73.9,18 90,34.1 90,54 C90,73.9 73.9,90 54,90 C34.1,90 18,73.9 18,54 C18,34.1 34.1,18 54,18 Z" />
     <path
         android:fillColor="#0B1315"
-        android:pathData="M58,18 L35,56 L51,56 L44,89 L75,45 L57,45 L68,18 Z" />
+        android:pathData="M58,29 L39,55 L52,55 L46,79 L70,49 L56,49 L65,29 Z" />
 </vector>
