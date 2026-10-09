@@ -5,7 +5,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
-import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +15,6 @@ class RideService(
     private val driverService: DriverService,
     private val fareService: FareService
 ) {
-    private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val db: FirebaseFirestore? by lazy { runCatching { FirebaseFirestore.getInstance() }.getOrNull() }
     private var passengerRideListener: ListenerRegistration? = null
     private var driverRideListener: ListenerRegistration? = null
@@ -71,7 +69,6 @@ class RideService(
                 else _rideError.value = error.localizedMessage ?: "Ride update failed. Please try again."
             }
     }
-    private var trackingJob: Job? = null
 
     // The currently active ride for either Passenger or Driver
     private val _activeRide = MutableStateFlow<RideRequest?>(null)
@@ -313,8 +310,7 @@ class RideService(
     fun startTrip() {
         val current = _activeRide.value ?: return
         _activeRide.value = current.copy(
-            status = RideStatus.TRIP_STARTED,
-            driverLocation = current.pickup
+            status = RideStatus.TRIP_STARTED
         )
         persistRide(_activeRide.value ?: current)
         // Driver position is updated from device GPS, never interpolated or simulated.
@@ -323,7 +319,6 @@ class RideService(
     // Complete trip
     fun completeTrip() {
         val current = _activeRide.value ?: return
-        trackingJob?.cancel()
         val completed = current.copy(
             status = RideStatus.TRIP_COMPLETED,
             completedAt = System.currentTimeMillis()
