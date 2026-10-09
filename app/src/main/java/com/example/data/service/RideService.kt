@@ -165,10 +165,12 @@ class RideService(
         passengerPhone: String,
         pickup: GeoPoint,
         destination: GeoPoint,
-        vehicleType: VehicleType
+        vehicleType: VehicleType,
+        routeDistanceKm: Double? = null,
+        routeMinutes: Int? = null
     ): RideRequest {
-        val distance = locationService.calculateDistanceKm(pickup, destination)
-        val minutes = locationService.estimateMinutes(distance)
+        val distance = routeDistanceKm?.takeIf { it > 0.0 } ?: locationService.calculateDistanceKm(pickup, destination)
+        val minutes = routeMinutes?.takeIf { it > 0 } ?: locationService.estimateMinutes(distance)
         val fare = fareService.calculateEstimatedFare(vehicleType, distance)
 
         val ride = RideRequest(
