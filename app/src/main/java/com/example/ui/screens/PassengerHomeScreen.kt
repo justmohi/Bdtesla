@@ -9,6 +9,8 @@ import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -250,6 +252,7 @@ fun PassengerHomeScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(max = 620.dp)
                         .testTag("ride_booking_sheet"),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = TeslaDarkSurface.copy(alpha = 0.95f)),
@@ -258,6 +261,7 @@ fun PassengerHomeScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
