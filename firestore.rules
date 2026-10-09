@@ -148,8 +148,16 @@ service cloud.firestore {
           'status',
           'isPaid',
           'driverRating',
+          'passengerPhone',
           'updatedAt'
         ])
+        && (
+          request.resource.data.passengerPhone == resource.data.passengerPhone ||
+          (
+            resource.data.driverId != null &&
+            request.resource.data.passengerPhone == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.phone
+          )
+        )
         && rideStatusAllowed();
 
       // An assigned driver can accept an unassigned request, then update only
