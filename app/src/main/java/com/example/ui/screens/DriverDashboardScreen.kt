@@ -210,7 +210,7 @@ fun DriverDashboardScreen(
                                     color = TeslaCyanAccent
                                 )
                                 Text(
-                                    text = "যাত্রী: ${activeRide.passengerName}",
+                                    text = "যাত্রী: ${activeRide.passengerName} • ${activeRide.passengerCount} জন",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = TeslaDarkTextPrimary
                                 )
