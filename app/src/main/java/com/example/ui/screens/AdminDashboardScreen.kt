@@ -45,6 +45,11 @@ fun AdminDashboardScreen(
     onCloseAdmin: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    DisposableEffect(driverService) {
+        driverService.observeAllDriversForAdmin()
+        onDispose { driverService.stopAdminDriverObserver() }
+    }
+
     var selectedTab by remember { mutableStateOf(AdminTab.OVERVIEW) }
     val allDrivers by driverService.allDrivers.collectAsState()
     val autoConfig by fareService.autoConfig.collectAsState()
