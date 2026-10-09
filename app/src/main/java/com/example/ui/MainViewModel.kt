@@ -306,6 +306,7 @@ class MainViewModel : ViewModel() {
 
     // Passenger Ride Actions
     fun requestRide() {
+        if (_uiState.value.routeDistanceKm == null || _uiState.value.routeMinutes == null) return
         val pickup = _uiState.value.selectedPickup ?: locationService.kushtiaHubs[0]
         val dest = _uiState.value.selectedDestination ?: locationService.kushtiaHubs[3]
         val user = _uiState.value.userProfile
