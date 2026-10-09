@@ -367,7 +367,6 @@ class RideService(
     }
 
     fun cancelRide() {
-        trackingJob?.cancel()
         val current = _activeRide.value ?: return
         val cancelled = current.copy(status = RideStatus.CANCELLED)
         persistRide(cancelled)
