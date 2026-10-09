@@ -1,6 +1,7 @@
 package com.example.data.service
 
 import android.app.Activity
+import androidx.activity.ComponentActivity
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.CustomCredential
@@ -84,7 +85,7 @@ class AuthService {
     }
 
     fun signInWithGoogle(
-        activity: Activity,
+        activity: ComponentActivity,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
