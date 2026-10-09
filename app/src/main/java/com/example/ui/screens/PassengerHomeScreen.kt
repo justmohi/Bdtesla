@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.location.Geocoder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +29,10 @@ import com.example.data.service.LocationService
 import com.example.ui.components.BdTeslaMapCanvas
 import com.example.ui.components.VehicleSelectorCard
 import com.example.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +61,72 @@ fun PassengerHomeScreen(
 ) {
     var showLocationSheet by remember { mutableStateOf(false) }
     var pickingForDrop by remember { mutableStateOf(true) }
+    var locationQuery by remember { mutableStateOf("") }
+    var locationResults by remember { mutableStateOf<List<GeoPoint>>(emptyList()) }
+    var locationSearchError by remember { mutableStateOf<String?>(null) }
+    var isSearchingLocation by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val locationSearchScope = rememberCoroutineScope()
+
+    fun searchKushtiaLocations() {
+        val query = locationQuery.trim()
+        if (query.length < 3) {
+            locationSearchError = if (language == AppLanguage.BANGLA)
+                "কমপক্ষে ৩টি অক্ষর দিয়ে জায়গার নাম লিখুন।"
+            else "Enter at least 3 characters to search."
+            locationResults = emptyList()
+            return
+        }
+        isSearchingLocation = true
+        locationSearchError = null
+        locationSearchScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val geocoder = Geocoder(context, Locale("en", "BD"))
+                    @Suppress("DEPRECATION")
+                    geocoder.getFromLocationName(query, 8).orEmpty()
+                        .filter { address ->
+                            val lat = address.latitude
+                            val lon = address.longitude
+                            // Approximate outer bounds of Kushtia District; do not offer results outside the district.
+                            lat in 23.55..24.10 && lon in 88.65..89.35
+                        }
+                        .distinctBy { "${it.latitude},${it.longitude}" }
+                        .map { address ->
+                            val line = address.getAddressLine(0)
+                                ?: listOfNotNull(address.featureName, address.locality, address.adminArea)
+                                    .distinct().joinToString(", ")
+                            val label = address.featureName?.takeIf { it.isNotBlank() }
+                                ?: address.subLocality?.takeIf { it.isNotBlank() }
+                                ?: address.locality?.takeIf { it.isNotBlank() }
+                                ?: query
+                            GeoPoint(
+                                latitude = address.latitude,
+                                longitude = address.longitude,
+                                nameEn = label,
+                                nameBn = label,
+                                addressEn = line,
+                                addressBn = line
+                            )
+                        }
+                }
+            }
+            isSearchingLocation = false
+            result.onSuccess { found ->
+                locationResults = found
+                locationSearchError = if (found.isEmpty()) {
+                    if (language == AppLanguage.BANGLA)
+                        "কুষ্টিয়া জেলার মধ্যে জায়গাটি পাওয়া যায়নি। অন্য নামে খুঁজুন।"
+                    else "No matching place was found within Kushtia District. Try another name."
+                } else null
+            }.onFailure {
+                locationResults = emptyList()
+                locationSearchError = if (language == AppLanguage.BANGLA)
+                    "লোকেশন খোঁজা যাচ্ছে না। ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।"
+                else "Location search failed. Check your internet connection and try again."
+            }
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         // Map Canvas layer
@@ -452,7 +524,12 @@ fun PassengerHomeScreen(
         // Kushtia Landmark Picker Modal Bottom Sheet
         if (showLocationSheet) {
             ModalBottomSheet(
-                onDismissRequest = { showLocationSheet = false },
+                onDismissRequest = {
+                    showLocationSheet = false
+                    locationQuery = ""
+                    locationResults = emptyList()
+                    locationSearchError = null
+                },
                 containerColor = TeslaDarkSurface
             ) {
                 Column(
@@ -469,10 +546,102 @@ fun PassengerHomeScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = locationQuery,
+                            onValueChange = {
+                                locationQuery = it
+                                locationSearchError = null
+                            },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            placeholder = {
+                                Text(
+                                    if (language == AppLanguage.BANGLA)
+                                        "এলাকা, বাজার, গ্রাম বা ঠিকানা"
+                                    else "Area, market, village or address"
+                                )
+                            },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Button(
+                            onClick = { searchKushtiaLocations() },
+                            enabled = !isSearchingLocation,
+                            colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (isSearchingLocation) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = TeslaDarkBg
+                                )
+                            } else {
+                                Icon(Icons.Default.Search, contentDescription = null, tint = TeslaDarkBg)
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = if (language == AppLanguage.BANGLA)
+                            "কুষ্টিয়া জেলার যেকোনো জায়গা খুঁজুন, অথবা নিচের পরিচিত স্থান বেছে নিন।"
+                        else "Search for a place anywhere within Kushtia District, or choose a known landmark below.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TeslaDarkTextSecondary
+                    )
+
+                    if (locationSearchError != null) {
+                        Text(
+                            text = locationSearchError.orEmpty(),
+                            color = StatusDanger,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
                     LazyColumn(
-                        modifier = Modifier.height(340.dp),
+                        modifier = Modifier.height(280.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        items(locationResults) { result ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (pickingForDrop) onSelectDestination(result)
+                                        else onSelectPickup(result)
+                                        showLocationSheet = false
+                                        locationQuery = ""
+                                        locationResults = emptyList()
+                                        locationSearchError = null
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = TeslaDarkCard)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = TeslaCyanAccent)
+                                    Column {
+                                        Text(
+                                            text = if (language == AppLanguage.BANGLA) result.nameBn else result.nameEn,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TeslaDarkTextPrimary
+                                        )
+                                        Text(
+                                            text = if (language == AppLanguage.BANGLA) result.addressBn else result.addressEn,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TeslaDarkTextSecondary
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         items(locationService.kushtiaHubs) { hub ->
                             Card(
                                 modifier = Modifier
