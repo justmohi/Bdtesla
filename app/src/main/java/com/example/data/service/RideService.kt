@@ -4,6 +4,7 @@ import com.example.data.model.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,8 +37,6 @@ class RideService(
             "id" to ride.id,
             "passengerId" to ride.passengerId,
             "passengerName" to ride.passengerName,
-            // Hide passenger phone from the open driver request queue; only share after a secure contact flow is added.
-            "passengerPhone" to if (ride.passengerPhone.isBlank() || ride.driverId == null) null else ride.passengerPhone,
             "driverId" to ride.driverId,
             "driverName" to ride.driverName,
             "driverPhone" to ride.driverPhone,
@@ -63,7 +62,7 @@ class RideService(
             onFailure?.invoke(IllegalStateException("Firebase Firestore is unavailable."))
             return
         }
-        firestore.collection("rides").document(ride.id).set(data)
+        firestore.collection("rides").document(ride.id).set(data, SetOptions.merge())
             .addOnSuccessListener {
                 onSuccess?.invoke()
             }
