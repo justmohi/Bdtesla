@@ -130,6 +130,11 @@ service cloud.firestore {
             resource.data.driverId != null &&
             get(/databases/$(database)/documents/drivers/$(resource.data.driverId)).data.userId == request.auth.uid
           ) ||
+          (
+            resource.data.status == 'SEARCHING_DRIVER' &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.driverStatus == 'APPROVED' &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeRole == 'DRIVER'
+          ) ||
           isAdmin()
         );
 
