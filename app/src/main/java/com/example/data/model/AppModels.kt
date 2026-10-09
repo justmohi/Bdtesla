@@ -14,10 +14,16 @@ enum class DriverVerificationStatus {
     SUSPENDED
 }
 
-enum class VehicleType(val labelEn: String, val labelBn: String, val capacity: String, val iconEmoji: String = "🛺") {
-    AUTO("Auto", "অটো", "৪-৫ যাত্রী", "🚗"),
-    RICKSHAW("Rickshaw", "রিকশা", "২ যাত্রী", "🛺"),
-    PAKHI_VAN("Pakhi Van", "পাখি ভ্যান", "৪-৬ যাত্রী / মালামাল", "🛺")
+enum class VehicleType(
+    val labelEn: String,
+    val labelBn: String,
+    val capacity: String,
+    val maxPassengers: Int,
+    val iconEmoji: String = "🛺"
+) {
+    AUTO("Auto", "অটো", "৪-৫ যাত্রী", 5, "🚗"),
+    RICKSHAW("Rickshaw", "রিকশা", "২ যাত্রী", 2, "🛺"),
+    PAKHI_VAN("Pakhi Van", "পাখি ভ্যান", "৪-৬ যাত্রী / মালামাল", 6, "🛺")
 }
 
 data class GeoPoint(
@@ -94,7 +100,8 @@ data class RideRequest(
     val driverRating: Float? = null,
     val passengerRating: Float? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val passengerCount: Int = 1
 )
 
 data class FareConfig(
