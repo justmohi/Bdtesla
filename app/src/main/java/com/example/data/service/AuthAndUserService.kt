@@ -95,7 +95,12 @@ class AuthService {
         }
 
         val clientId = runCatching {
-            activity.getString(com.example.R.string.default_web_client_id)
+            val resourceId = activity.resources.getIdentifier(
+                "default_web_client_id",
+                "string",
+                activity.packageName
+            )
+            if (resourceId == 0) "" else activity.getString(resourceId)
         }.getOrNull().orEmpty()
         if (clientId.isBlank()) {
             onError("Google Sign-In is not configured yet. Enable Google provider in Firebase Authentication and add the Web client ID.")
