@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,7 @@ fun AuthScreen(
     onSendOtp: () -> Unit,
     onBackToPhone: () -> Unit,
     onVerifyOtp: () -> Unit,
+    onGoogleSignIn: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -124,6 +126,10 @@ fun AuthScreen(
                                 singleLine = true
                             )
 
+                            if (otpError != null) {
+                                Text(text = otpError, color = StatusDanger, fontSize = 12.sp)
+                            }
+
                             Button(
                                 onClick = onSendOtp,
                                 colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
@@ -137,6 +143,20 @@ fun AuthScreen(
                                     text = Strings.sendOtp(language),
                                     fontWeight = FontWeight.Bold,
                                     color = TeslaDarkBg
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = onGoogleSignIn,
+                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = TeslaDarkTextPrimary)
+                            ) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (language == AppLanguage.BANGLA) "Google দিয়ে চালিয়ে যান" else "Continue with Google",
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
