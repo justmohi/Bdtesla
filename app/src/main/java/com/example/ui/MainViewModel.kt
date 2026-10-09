@@ -52,6 +52,7 @@ data class MainUiState(
     val selectedPickup: GeoPoint? = null,
     val selectedDestination: GeoPoint? = null,
     val selectedVehicle: VehicleType = VehicleType.AUTO,
+    val passengerCount: Int = 1,
     val routeDistanceKm: Double? = null,
     val routeMinutes: Int? = null,
     val showDestinationPicker: Boolean = false,
@@ -288,6 +289,10 @@ class MainViewModel : ViewModel() {
         _uiState.update { it.copy(selectedVehicle = vehicleType) }
     }
 
+    fun setPassengerCount(count: Int) {
+        _uiState.update { it.copy(passengerCount = count.coerceIn(1, 6)) }
+    }
+
     fun setPickup(geoPoint: GeoPoint) {
         _uiState.update { it.copy(selectedPickup = geoPoint, routeDistanceKm = null, routeMinutes = null) }
     }
@@ -309,6 +314,10 @@ class MainViewModel : ViewModel() {
     // Passenger Ride Actions
     fun requestRide() {
         if (_uiState.value.routeDistanceKm == null || _uiState.value.routeMinutes == null) return
+        if (_uiState.value.passengerCount > _uiState.value.selectedVehicle.maxPassengers) {
+            rideService.reportError("Selected vehicle cannot carry this many passengers. Choose a larger vehicle.")
+            return
+        }
         val pickup = _uiState.value.selectedPickup ?: return
         val dest = _uiState.value.selectedDestination ?: return
         val user = _uiState.value.userProfile
@@ -323,6 +332,7 @@ class MainViewModel : ViewModel() {
             pickup = pickup,
             destination = dest,
             vehicleType = _uiState.value.selectedVehicle,
+            passengerCount = _uiState.value.passengerCount,
             routeDistanceKm = _uiState.value.routeDistanceKm,
             routeMinutes = _uiState.value.routeMinutes
         )
