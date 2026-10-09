@@ -19,13 +19,15 @@ class RideService(
     private val db: FirebaseFirestore? by lazy { runCatching { FirebaseFirestore.getInstance() }.getOrNull() }
     private var passengerRideListener: ListenerRegistration? = null
     private var driverRideListener: ListenerRegistration? = null
+    private var availableRideListener: ListenerRegistration? = null
 
     private fun persistRide(ride: RideRequest) {
         val data = mapOf(
             "id" to ride.id,
             "passengerId" to ride.passengerId,
             "passengerName" to ride.passengerName,
-            "passengerPhone" to ride.passengerPhone,
+            // Hide passenger phone from the open driver request queue; only share after a secure contact flow is added.
+            "passengerPhone" to if (ride.driverId == null) null else ride.passengerPhone,
             "driverId" to ride.driverId,
             "driverName" to ride.driverName,
             "driverPhone" to ride.driverPhone,
@@ -131,13 +133,30 @@ class RideService(
                     .maxByOrNull { it.createdAt }
                 if (active != null) _activeRide.value = active
             }
+
+        // Real incoming requests are loaded from Firestore; no local/mock request is generated.
+        availableRideListener?.remove()
+        val driver = driverService.currentDriverProfile.value ?: return
+        if (!driver.isOnline || driver.verificationStatus != DriverVerificationStatus.APPROVED) return
+        availableRideListener = db?.collection("rides")
+            ?.whereEqualTo("status", RideStatus.SEARCHING_DRIVER.name)
+            ?.whereEqualTo("vehicleType", driver.vehicleType.name)
+            ?.addSnapshotListener { snapshot, _ ->
+                val request = snapshot?.documents
+                    ?.mapNotNull(::mapRide)
+                    ?.filter { it.driverId == null && it.status == RideStatus.SEARCHING_DRIVER }
+                    ?.minByOrNull { it.createdAt }
+                _incomingDriverRequest.value = request
+            }
     }
 
     fun stopRealtimeSync() {
         passengerRideListener?.remove()
         driverRideListener?.remove()
+        availableRideListener?.remove()
         passengerRideListener = null
         driverRideListener = null
+        availableRideListener = null
     }
 
     fun requestRide(
@@ -183,20 +202,49 @@ class RideService(
         return ride
     }
 
-    // Driver accepts incoming request
+    // Claim a real Firestore request atomically so two drivers cannot accept the same ride.
     fun driverAcceptRequest(driver: DriverProfile) {
-        val ride = _incomingDriverRequest.value ?: _activeRide.value ?: return
-        _incomingDriverRequest.value = null
-        val accepted = ride.copy(
-            driverId = driver.driverId,
-            driverName = driver.fullName,
-            driverPhone = driver.phone,
-            vehicleNumber = driver.vehicleNumber,
-            status = RideStatus.DRIVER_ASSIGNED,
-            driverLocation = driver.currentLocation
-        )
-        _activeRide.value = accepted
-        persistRide(accepted)
+        val ride = _incomingDriverRequest.value ?: return
+        val firestore = db ?: return
+        if (!driver.isOnline || driver.verificationStatus != DriverVerificationStatus.APPROVED) return
+        val ref = firestore.collection("rides").document(ride.id)
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(ref)
+            val status = snapshot.getString("status")
+            val assignedDriver = snapshot.getString("driverId")
+            if (!snapshot.exists() || assignedDriver != null || status != RideStatus.SEARCHING_DRIVER.name) {
+                throw IllegalStateException("This ride has already been accepted or is no longer available.")
+            }
+            transaction.update(ref, mapOf(
+                "driverId" to driver.driverId,
+                "driverName" to driver.fullName,
+                "driverPhone" to driver.phone,
+                "vehicleNumber" to driver.vehicleNumber,
+                "status" to RideStatus.DRIVER_ASSIGNED.name,
+                "driverLocation" to mapOf(
+                    "latitude" to driver.currentLocation.latitude,
+                    "longitude" to driver.currentLocation.longitude,
+                    "nameEn" to driver.currentLocation.nameEn,
+                    "nameBn" to driver.currentLocation.nameBn
+                ),
+                "updatedAt" to FieldValue.serverTimestamp()
+            ))
+        }.addOnSuccessListener {
+            val accepted = ride.copy(
+                driverId = driver.driverId,
+                driverName = driver.fullName,
+                driverPhone = driver.phone,
+                vehicleNumber = driver.vehicleNumber,
+                status = RideStatus.DRIVER_ASSIGNED,
+                driverLocation = driver.currentLocation,
+                passengerPhone = ""
+            )
+            _incomingDriverRequest.value = null
+            _activeRide.value = accepted
+        }.addOnFailureListener {
+            // The live Firestore listener refreshes the queue; never fabricate an assignment.
+            _incomingDriverRequest.value = null
+        }
     }
 
     // Driver rejects incoming request
