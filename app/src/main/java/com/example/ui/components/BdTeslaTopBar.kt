@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.localization.AppLanguage
+import com.example.ui.components.BdTeslaBrandMark
 import com.example.data.localization.Strings
 import com.example.data.model.DriverVerificationStatus
 import com.example.data.model.UserRole
@@ -55,24 +56,7 @@ fun BdTeslaTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(TeslaGreenNeon, TeslaCyanAccent)
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = "BD TESLA Bolt",
-                        tint = TeslaDarkBg,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                BdTeslaBrandMark(size = 44.dp)
 
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
