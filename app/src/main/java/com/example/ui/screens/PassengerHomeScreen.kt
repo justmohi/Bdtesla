@@ -52,6 +52,7 @@ fun PassengerHomeScreen(
     distanceKm: Double,
     estimatedMinutes: Int,
     activeRide: RideRequest?,
+    rideError: String? = null,
     locationService: LocationService,
     language: AppLanguage,
     onSelectPickup: (GeoPoint) -> Unit,
@@ -385,6 +386,14 @@ fun PassengerHomeScreen(
                                 estimatedMinutes = estimatedMinutes,
                                 language = language,
                                 onSelect = { onSelectVehicle(VehicleType.PAKHI_VAN) }
+                            )
+                        }
+
+                        if (rideError != null) {
+                            Text(
+                                text = rideError,
+                                color = StatusDanger,
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
 
