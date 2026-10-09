@@ -94,7 +94,7 @@ class MainViewModel : ViewModel() {
                     )
                 }
                 if (user.id != "LOCAL-USER") {
-                    rideService.observePassengerRides(user.id)
+                    rideService.observePassengerRides(user.id, user.phone)
                 }
             }
         }
