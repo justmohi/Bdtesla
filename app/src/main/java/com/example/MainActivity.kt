@@ -79,6 +79,9 @@ class MainActivity : ComponentActivity() {
                         override fun onLocationResult(result: LocationResult) {
                             result.locations.forEach { location ->
                                 viewModel.driverService.updateCurrentLocation(location.latitude, location.longitude)
+                                viewModel.driverService.currentDriverProfile.value?.driverId?.let { driverId ->
+                                    viewModel.rideService.updateDriverLocation(driverId, location.latitude, location.longitude)
+                                }
                             }
                         }
                     }
