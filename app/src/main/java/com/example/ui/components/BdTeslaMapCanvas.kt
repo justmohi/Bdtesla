@@ -40,6 +40,7 @@ fun BdTeslaMapCanvas(
     destination: GeoPoint?,
     activeRide: RideRequest?,
     language: AppLanguage,
+    onRouteCalculated: (Double, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
