@@ -73,12 +73,7 @@ class MainViewModel : ViewModel() {
     val chatService = ChatService()
     val paymentService = PaymentService()
 
-    private val _uiState = MutableStateFlow(
-        MainUiState(
-            selectedPickup = locationService.kushtiaHubs[0], // Majompur Gate
-            selectedDestination = locationService.kushtiaHubs[3] // Medical College
-        )
-    )
+    private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
@@ -307,8 +302,8 @@ class MainViewModel : ViewModel() {
     // Passenger Ride Actions
     fun requestRide() {
         if (_uiState.value.routeDistanceKm == null || _uiState.value.routeMinutes == null) return
-        val pickup = _uiState.value.selectedPickup ?: locationService.kushtiaHubs[0]
-        val dest = _uiState.value.selectedDestination ?: locationService.kushtiaHubs[3]
+        val pickup = _uiState.value.selectedPickup ?: return
+        val dest = _uiState.value.selectedDestination ?: return
         val user = _uiState.value.userProfile
         rideService.requestRide(
             passengerId = user?.id ?: "LOCAL-USER",
