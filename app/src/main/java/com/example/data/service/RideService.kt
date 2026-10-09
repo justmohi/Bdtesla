@@ -48,6 +48,7 @@ class RideService(
             "estimatedFare" to ride.estimatedFare,
             "distanceKm" to ride.distanceKm,
             "estimatedMinutes" to ride.estimatedMinutes,
+            "passengerCount" to ride.passengerCount,
             "status" to ride.status.name,
             "driverLocation" to ride.driverLocation?.let { mapOf("latitude" to it.latitude, "longitude" to it.longitude) },
             "paymentMethod" to ride.paymentMethod,
@@ -116,6 +117,7 @@ class RideService(
             estimatedFare = (d["estimatedFare"] as? Number)?.toDouble() ?: 0.0,
             distanceKm = (d["distanceKm"] as? Number)?.toDouble() ?: 0.0,
             estimatedMinutes = (d["estimatedMinutes"] as? Number)?.toInt() ?: 0,
+            passengerCount = (d["passengerCount"] as? Number)?.toInt()?.coerceIn(1, 6) ?: 1,
             status = runCatching { RideStatus.valueOf(d["status"] as? String ?: RideStatus.NONE.name) }.getOrDefault(RideStatus.NONE),
             driverLocation = driverLocation,
             paymentMethod = d["paymentMethod"] as? String ?: "CASH",
@@ -212,9 +214,14 @@ class RideService(
         pickup: GeoPoint,
         destination: GeoPoint,
         vehicleType: VehicleType,
+        passengerCount: Int = 1,
         routeDistanceKm: Double? = null,
         routeMinutes: Int? = null
     ): RideRequest {
+        val safePassengerCount = passengerCount.coerceIn(1, 6)
+        require(safePassengerCount <= vehicleType.maxPassengers) {
+            "Selected vehicle cannot carry this many passengers."
+        }
         val distance = routeDistanceKm?.takeIf { it > 0.0 } ?: locationService.calculateDistanceKm(pickup, destination)
         val minutes = routeMinutes?.takeIf { it > 0 } ?: locationService.estimateMinutes(distance)
         val fare = fareService.calculateEstimatedFare(vehicleType, distance)
@@ -230,6 +237,7 @@ class RideService(
             estimatedFare = fare,
             distanceKm = distance,
             estimatedMinutes = minutes,
+            passengerCount = safePassengerCount,
             status = RideStatus.SEARCHING_DRIVER
         )
         _rideError.value = null
