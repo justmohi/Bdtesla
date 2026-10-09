@@ -218,16 +218,8 @@ class RideService(
         _activeRide.value = ride
         persistRide(ride)
 
-        // Driver Matching Flow:
-        // Find if the current active driver in app can receive it, or assign a simulated nearby driver
-        val currentDriver = driverService.currentDriverProfile.value
-        if (currentDriver != null && currentDriver.isOnline && currentDriver.vehicleType == vehicleType && currentDriver.verificationStatus == DriverVerificationStatus.APPROVED) {
-            // Offer to current driver mode!
-            _incomingDriverRequest.value = ride
-        }
-
-        // Real driver matching is handled through registered, approved drivers only.
-        // Never auto-assign a mock driver when no real driver accepts the request.
+        // The driver's separate authenticated session receives this request from Firestore.
+        // No client-side or mock driver is assigned automatically.
 
         return ride
     }
