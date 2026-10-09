@@ -27,7 +27,7 @@ class RideService(
             "passengerId" to ride.passengerId,
             "passengerName" to ride.passengerName,
             // Hide passenger phone from the open driver request queue; only share after a secure contact flow is added.
-            "passengerPhone" to if (ride.driverId == null) null else ride.passengerPhone,
+            "passengerPhone" to if (ride.passengerPhone.isBlank() || ride.driverId == null) null else ride.passengerPhone,
             "driverId" to ride.driverId,
             "driverName" to ride.driverName,
             "driverPhone" to ride.driverPhone,
@@ -172,7 +172,7 @@ class RideService(
         val fare = fareService.calculateEstimatedFare(vehicleType, distance)
 
         val ride = RideRequest(
-            id = "BDT-${(System.currentTimeMillis() % 100000)}",
+            id = "BDT-${UUID.randomUUID()}",
             passengerId = passengerId,
             passengerName = passengerName,
             passengerPhone = passengerPhone,
@@ -182,8 +182,7 @@ class RideService(
             estimatedFare = fare,
             distanceKm = distance,
             estimatedMinutes = minutes,
-            status = RideStatus.SEARCHING_DRIVER,
-            driverLocation = pickup // initial
+            status = RideStatus.SEARCHING_DRIVER
         )
         _activeRide.value = ride
         persistRide(ride)
