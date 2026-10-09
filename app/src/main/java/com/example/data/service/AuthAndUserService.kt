@@ -1,6 +1,15 @@
 package com.example.data.service
 
 import android.app.Activity
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.CustomCredential
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.google.firebase.auth.GoogleAuthProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.example.data.model.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.PhoneAuthOptions
@@ -72,6 +81,56 @@ class AuthService {
             .build()
 
         PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    fun signInWithGoogle(
+        activity: Activity,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val firebaseAuth = auth
+        if (firebaseAuth == null) {
+            onError("Firebase is not configured.")
+            return
+        }
+
+        val clientId = runCatching {
+            activity.getString(com.example.R.string.default_web_client_id)
+        }.getOrNull().orEmpty()
+        if (clientId.isBlank()) {
+            onError("Google Sign-In is not configured yet. Enable Google provider in Firebase Authentication and add the Web client ID.")
+            return
+        }
+
+        activity.lifecycleScope.launch {
+            try {
+                val googleOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(clientId)
+                    .setAutoSelectEnabled(false)
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleOption)
+                    .build()
+                val result = CredentialManager.create(activity).getCredential(activity, request)
+                val credential = result.credential
+                if (credential !is CustomCredential ||
+                    credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    onError("Google Sign-In was cancelled or returned an unsupported credential.")
+                    return@launch
+                }
+                val googleToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                val firebaseCredential = GoogleAuthProvider.getCredential(googleToken, null)
+                firebaseAuth.signInWithCredential(firebaseCredential)
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { onError(it.message ?: "Google Sign-In failed.") }
+            } catch (e: GoogleIdTokenParsingException) {
+                onError("Could not read Google account credential.")
+            } catch (e: Exception) {
+                onError(e.message ?: "Google Sign-In failed.")
+            }
+        }
     }
 
     fun verifyOtp(
