@@ -1,6 +1,11 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.location.Geocoder
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,6 +34,7 @@ import com.example.data.service.LocationService
 import com.example.ui.components.BdTeslaMapCanvas
 import com.example.ui.components.VehicleSelectorCard
 import com.example.ui.theme.*
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -68,6 +74,93 @@ fun PassengerHomeScreen(
     var isSearchingLocation by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val locationSearchScope = rememberCoroutineScope()
+    val fusedLocationClient = remember(context) { LocationServices.getFusedLocationProviderClient(context) }
+
+    fun applyDeviceLocation(latitude: Double, longitude: Double) {
+        if (latitude !in 23.55..24.10 || longitude !in 88.65..89.35) {
+            locationSearchError = if (language == AppLanguage.BANGLA)
+                "আপনার বর্তমান অবস্থান কুষ্টিয়া জেলার বাইরে। কুষ্টিয়ার ভেতরের পিকআপ নির্বাচন করুন।"
+            else "Your current location appears to be outside Kushtia District."
+            return
+        }
+        isSearchingLocation = true
+        locationSearchScope.launch {
+            val point = withContext(Dispatchers.IO) {
+                runCatching {
+                    val geocoder = Geocoder(context, Locale("en", "BD"))
+                    @Suppress("DEPRECATION")
+                    val address = geocoder.getFromLocation(latitude, longitude, 1)?.firstOrNull()
+                    val label = address?.featureName?.takeIf { it.isNotBlank() }
+                        ?: address?.locality?.takeIf { it.isNotBlank() }
+                        ?: if (language == AppLanguage.BANGLA) "বর্তমান অবস্থান" else "Current location"
+                    val addressLine = address?.getAddressLine(0) ?: label
+                    GeoPoint(
+                        latitude = latitude,
+                        longitude = longitude,
+                        nameEn = label,
+                        nameBn = label,
+                        addressEn = addressLine,
+                        addressBn = addressLine
+                    )
+                }.getOrNull()
+            }
+            isSearchingLocation = false
+            if (point == null) {
+                locationSearchError = if (language == AppLanguage.BANGLA)
+                    "বর্তমান অবস্থানের ঠিকানা পাওয়া যায়নি। আবার চেষ্টা করুন।"
+                else "Could not resolve your current location. Try again."
+            } else {
+                if (pickingForDrop) onSelectDestination(point) else onSelectPickup(point)
+                showLocationSheet = false
+                locationQuery = ""
+                locationResults = emptyList()
+                locationSearchError = null
+            }
+        }
+    }
+
+    fun fetchDeviceLocation() {
+        val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!fineGranted && !coarseGranted) {
+            locationSearchError = if (language == AppLanguage.BANGLA)
+                "বর্তমান অবস্থান নিতে Location permission দিন।"
+            else "Allow location permission to use your current location."
+            return
+        }
+        isSearchingLocation = true
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                if (location == null) {
+                    isSearchingLocation = false
+                    locationSearchError = if (language == AppLanguage.BANGLA)
+                        "GPS অবস্থান পাওয়া যায়নি। ফোনের Location চালু করে আবার চেষ্টা করুন।"
+                    else "GPS location unavailable. Turn on Location and try again."
+                } else {
+                    applyDeviceLocation(location.latitude, location.longitude)
+                }
+            }
+            .addOnFailureListener {
+                isSearchingLocation = false
+                locationSearchError = if (language == AppLanguage.BANGLA)
+                    "GPS থেকে অবস্থান নেওয়া যায়নি। আবার চেষ্টা করুন।"
+                else "Could not read GPS location. Please try again."
+            }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        ) {
+            fetchDeviceLocation()
+        } else {
+            locationSearchError = if (language == AppLanguage.BANGLA)
+                "লোকেশন পারমিশন দেওয়া হয়নি। ঠিকানা লিখে পিকআপ নির্বাচন করুন।"
+            else "Location permission was denied. Search for the pickup address instead."
+        }
+    }
 
     fun searchKushtiaLocations() {
         val query = locationQuery.trim()
@@ -595,6 +688,32 @@ fun PassengerHomeScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = TeslaDarkTextSecondary
                     )
+
+                    OutlinedButton(
+                        onClick = {
+                            val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                            val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                            if (fineGranted || coarseGranted) {
+                                fetchDeviceLocation()
+                            } else {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                            }
+                        },
+                        enabled = !isSearchingLocation,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.MyLocation, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (language == AppLanguage.BANGLA) "আমার বর্তমান অবস্থান ব্যবহার করুন"
+                            else "Use my current location"
+                        )
+                    }
 
                     if (locationSearchError != null) {
                         Text(
