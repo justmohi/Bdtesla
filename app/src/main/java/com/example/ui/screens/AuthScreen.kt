@@ -38,7 +38,13 @@ fun AuthScreen(
     onGoogleSignIn: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
+    val showGoogleFallback = currentStep == AuthStep.PHONE_INPUT && otpError?.lowercase()?.let { error ->
+        error.contains("sms unable") ||
+            error.contains("region") ||
+            error.contains("sign-in provider is disabled") ||
+            error.contains("operation is not allowed") ||
+            error.contains("quota")
+    } == true
 
     Box(
         modifier = modifier
@@ -130,6 +136,27 @@ fun AuthScreen(
                                 Text(text = otpError, color = StatusDanger, fontSize = 12.sp)
                             }
 
+                            if (showGoogleFallback) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = TeslaGreenNeon.copy(alpha = 0.10f)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = if (language == AppLanguage.BANGLA)
+                                            "এই মুহূর্তে SMS OTP পাঠানো যাচ্ছে না। সরাসরি Google অ্যাকাউন্ট দিয়ে লগইন করুন।"
+                                        else
+                                            "SMS OTP is currently unavailable. Sign in directly with your Google account.",
+                                        modifier = Modifier.padding(12.dp),
+                                        color = TeslaDarkTextPrimary,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+
                             Button(
                                 onClick = onSendOtp,
                                 colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
@@ -155,7 +182,12 @@ fun AuthScreen(
                                 Icon(Icons.Default.AccountCircle, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = if (language == AppLanguage.BANGLA) "Google দিয়ে চালিয়ে যান" else "Continue with Google",
+                                    text = when {
+                                        language == AppLanguage.BANGLA && showGoogleFallback -> "Google দিয়ে সরাসরি লগইন করুন"
+                                        language == AppLanguage.BANGLA -> "Google দিয়ে চালিয়ে যান"
+                                        showGoogleFallback -> "Sign in directly with Google"
+                                        else -> "Continue with Google"
+                                    },
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
