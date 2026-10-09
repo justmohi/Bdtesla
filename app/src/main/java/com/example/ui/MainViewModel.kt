@@ -169,6 +169,26 @@ class MainViewModel : ViewModel() {
         )
     }
 
+    fun signInWithGoogle(activity: android.app.Activity) {
+        authService.signInWithGoogle(
+            activity = activity,
+            onSuccess = {
+                val firebaseUser = authService.currentUser()
+                val uid = firebaseUser?.uid
+                if (uid != null) {
+                    userService.setAuthenticatedIdentity(uid, firebaseUser.phoneNumber.orEmpty())
+                    userService.syncCurrentUserToFirestore()
+                    userService.loadCurrentUserFromFirestore()
+                    driverService.loadCurrentDriverProfile(uid)
+                    _uiState.update { it.copy(authStep = AuthStep.AUTHENTICATED, otpError = null) }
+                } else {
+                    _uiState.update { it.copy(otpError = "Google Sign-In succeeded but user session was not found.") }
+                }
+            },
+            onError = { message -> _uiState.update { it.copy(otpError = message) } }
+        )
+    }
+
     fun verifyOtp() {
         val code = _uiState.value.enteredOtp
         authService.verifyOtp(
