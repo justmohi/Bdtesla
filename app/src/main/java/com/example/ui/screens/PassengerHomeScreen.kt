@@ -64,6 +64,7 @@ fun PassengerHomeScreen(
     onCallDriver: (String, String) -> Unit,
     onOpenChat: () -> Unit,
     onRouteCalculated: (Double, Int) -> Unit = { _, _ -> },
+    hasRealRoute: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var showLocationSheet by remember { mutableStateOf(false) }
@@ -381,15 +382,27 @@ fun PassengerHomeScreen(
                                 vehicleType = VehicleType.PAKHI_VAN,
                                 isSelected = (selectedVehicle == VehicleType.PAKHI_VAN),
                                 estimatedFare = estimatedFareVan,
-                                estimatedMinutes = estimatedMinutes + 2,
+                                estimatedMinutes = estimatedMinutes,
                                 language = language,
                                 onSelect = { onSelectVehicle(VehicleType.PAKHI_VAN) }
+                            )
+                        }
+
+                        // Never submit a booking with a straight-line/demo fare; wait for a real road route.
+                        if (!hasRealRoute) {
+                            Text(
+                                text = if (language == AppLanguage.BANGLA)
+                                    "বাস্তব রাস্তা ও ভাড়া হিসাব করা হচ্ছে। রুট পাওয়া গেলে বুকিং চালু হবে।"
+                                else "Calculating the real road route and fare. Booking will be enabled when the route is ready.",
+                                color = TeslaDarkTextSecondary,
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
 
                         // Request Ride Action Button
                         Button(
                             onClick = onRequestRide,
+                            enabled = hasRealRoute,
                             colors = ButtonDefaults.buttonColors(containerColor = TeslaGreenNeon),
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier
