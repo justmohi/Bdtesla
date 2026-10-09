@@ -39,7 +39,8 @@ class DriverService(private val locationService: LocationService) {
     )
 
     private fun persistDriver(driver: DriverProfile) {
-        db?.collection("drivers")?.document(driver.driverId)
+        val firestore = db ?: return
+        firestore.collection("drivers").document(driver.driverId)
             .set(driverMap(driver))
     }
 
