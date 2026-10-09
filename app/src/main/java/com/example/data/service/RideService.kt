@@ -275,11 +275,26 @@ class RideService(
         _incomingDriverRequest.value = null
     }
 
+    fun updateDriverLocation(driverId: String, latitude: Double, longitude: Double) {
+        val current = _activeRide.value ?: return
+        if (current.driverId != driverId) return
+        if (current.status in listOf(RideStatus.TRIP_COMPLETED, RideStatus.CANCELLED, RideStatus.NONE)) return
+        val updated = current.copy(
+            driverLocation = GeoPoint(
+                latitude = latitude,
+                longitude = longitude,
+                nameEn = "Live GPS",
+                nameBn = "লাইভ GPS"
+            )
+        )
+        _activeRide.value = updated
+        persistRide(updated)
+    }
+
     // Driver action: arrived at pickup
     fun driverMarkArrived() {
         _activeRide.value = _activeRide.value?.copy(
-            status = RideStatus.DRIVER_ARRIVED,
-            driverLocation = _activeRide.value?.pickup
+            status = RideStatus.DRIVER_ARRIVED
         )
         _activeRide.value?.let(::persistRide)
     }
@@ -292,19 +307,7 @@ class RideService(
             driverLocation = current.pickup
         )
         persistRide(_activeRide.value ?: current)
-        // Simulate trip progression from pickup to destination
-        trackingJob?.cancel()
-        trackingJob = serviceScope.launch {
-            val steps = 8
-            for (i in 1..steps) {
-                delay(2200)
-                if (_activeRide.value?.id != current.id || _activeRide.value?.status != RideStatus.TRIP_STARTED) return@launch
-                val fraction = i / steps.toFloat()
-                val intermediate = locationService.interpolate(current.pickup, current.destination, fraction)
-                _activeRide.value = _activeRide.value?.copy(driverLocation = intermediate)
-                _activeRide.value?.let(::persistRide)
-            }
-        }
+        // Driver position is updated from device GPS, never interpolated or simulated.
     }
 
     // Complete trip
@@ -313,7 +316,6 @@ class RideService(
         trackingJob?.cancel()
         val completed = current.copy(
             status = RideStatus.TRIP_COMPLETED,
-            driverLocation = current.destination,
             completedAt = System.currentTimeMillis()
         )
         _activeRide.value = completed
