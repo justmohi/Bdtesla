@@ -42,8 +42,8 @@ class MainActivity : ComponentActivity() {
                 // Calculate estimated fares
                 val pickup = uiState.selectedPickup ?: viewModel.locationService.kushtiaHubs[0]
                 val dest = uiState.selectedDestination ?: viewModel.locationService.kushtiaHubs[3]
-                val distanceKm = viewModel.locationService.calculateDistanceKm(pickup, dest)
-                val estMinutes = viewModel.locationService.estimateMinutes(distanceKm)
+                val distanceKm = uiState.routeDistanceKm ?: viewModel.locationService.calculateDistanceKm(pickup, dest)
+                val estMinutes = uiState.routeMinutes ?: viewModel.locationService.estimateMinutes(distanceKm)
                 val autoFare = viewModel.fareService.calculateEstimatedFare(VehicleType.AUTO, distanceKm)
                 val rickshawFare = viewModel.fareService.calculateEstimatedFare(VehicleType.RICKSHAW, distanceKm)
                 val vanFare = viewModel.fareService.calculateEstimatedFare(VehicleType.PAKHI_VAN, distanceKm)
@@ -171,7 +171,8 @@ class MainActivity : ComponentActivity() {
                                                     onCallDriver = { name, phone ->
                                                         viewModel.openCallDialog(name, phone)
                                                     },
-                                                    onOpenChat = { viewModel.openChat() }
+                                                    onOpenChat = { viewModel.openChat() },
+                                                    onRouteCalculated = { km, minutes -> viewModel.setRouteEstimate(km, minutes) }
                                                 )
                                             }
 
