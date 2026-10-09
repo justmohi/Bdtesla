@@ -57,6 +57,7 @@ data class MainUiState(
     val showDestinationPicker: Boolean = false,
     val activeRide: RideRequest? = null,
     val incomingDriverRequest: RideRequest? = null,
+    val rideError: String? = null,
     val showRatingModal: Boolean = false,
     val ratingComment: String = ""
 )
@@ -115,6 +116,12 @@ class MainViewModel : ViewModel() {
         viewModelScope.launch {
             rideService.incomingDriverRequest.collect { req ->
                 _uiState.update { it.copy(incomingDriverRequest = req) }
+            }
+        }
+
+        viewModelScope.launch {
+            rideService.rideError.collect { error ->
+                _uiState.update { it.copy(rideError = error) }
             }
         }
     }
@@ -305,6 +312,10 @@ class MainViewModel : ViewModel() {
         val pickup = _uiState.value.selectedPickup ?: return
         val dest = _uiState.value.selectedDestination ?: return
         val user = _uiState.value.userProfile
+        if (user == null || user.id == "LOCAL-USER") {
+            rideService.reportError("Please sign in with Google before booking a ride.")
+            return
+        }
         rideService.requestRide(
             passengerId = user?.id ?: "LOCAL-USER",
             passengerName = user?.name ?: "Passenger",
