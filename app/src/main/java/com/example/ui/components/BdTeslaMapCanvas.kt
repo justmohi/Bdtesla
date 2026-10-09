@@ -162,64 +162,29 @@ fun BdTeslaMapCanvas(
                 )
             )
 
-            // 7. Draw Driver Position if ride active
+            // Show a driver marker only when a real Firestore ride has an actual driver location.
             val driverLoc = activeRide?.driverLocation
-            val driverOffset = if (driverLoc != null) {
-                // If ride is arriving: interpolate from candidate start towards pickup
-                // If trip started: interpolate from pickup to dest
-                when (activeRide.status) {
-                    RideStatus.DRIVER_ARRIVING -> {
-                        val startX = pickupOffset.x + 90f
-                        val startY = pickupOffset.y - 80f
-                        // calculate progress from driverLocation
-                        Offset(
-                            startX + (pickupOffset.x - startX) * 0.65f,
-                            startY + (pickupOffset.y - startY) * 0.65f
-                        )
-                    }
-                    RideStatus.TRIP_STARTED -> {
-                        Offset(
-                            pickupOffset.x + (destOffset.x - pickupOffset.x) * 0.55f,
-                            pickupOffset.y + (destOffset.y - pickupOffset.y) * 0.55f
-                        )
-                    }
-                    RideStatus.DRIVER_ARRIVED -> pickupOffset
-                    else -> Offset(pickupOffset.x + 60f, pickupOffset.y - 50f)
-                }
-            } else {
-                // Idle nearby driver dot in Kushtia
-                Offset(pickupOffset.x + 75f, pickupOffset.y - 60f)
-            }
-
-            // Draw Vehicle marker with glow
-            drawCircle(
-                color = TeslaGoldAccent.copy(alpha = 0.35f),
-                radius = 22f,
-                center = driverOffset
-            )
-            drawCircle(
-                color = TeslaGoldAccent,
-                radius = 12f,
-                center = driverOffset
-            )
-            drawCircle(
-                color = Color.Black,
-                radius = 5f,
-                center = driverOffset
-            )
-
-            // Draw idle nearby vehicle dots for realism
-            val nearbyPositions = listOf(
-                Offset(width * 0.28f, height * 0.45f),
-                Offset(width * 0.62f, height * 0.35f),
-                Offset(width * 0.52f, height * 0.68f)
-            )
-            nearbyPositions.forEach { pos ->
-                drawCircle(color = TeslaGreenNeon.copy(alpha = 0.6f), radius = 6f, center = pos)
+            if (driverLoc != null && activeRide.driverId != null) {
+                val driverOffset = getOffsetForPoint(driverLoc, width, height, defaultX = 0.5f, defaultY = 0.5f)
+                drawCircle(
+                    color = TeslaGoldAccent.copy(alpha = 0.35f),
+                    radius = 22f,
+                    center = driverOffset
+                )
+                drawCircle(
+                    color = TeslaGoldAccent,
+                    radius = 12f,
+                    center = driverOffset
+                )
+                drawCircle(
+                    color = Color.Black,
+                    radius = 5f,
+                    center = driverOffset
+                )
             }
         }
 
-        // Map Overlays: GPS Simulation Banner & Recenter Tooling
+        // Map overlays
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
