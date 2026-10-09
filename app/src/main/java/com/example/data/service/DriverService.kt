@@ -3,6 +3,7 @@ package com.example.data.service
 import com.example.data.model.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,6 +12,7 @@ import java.util.UUID
 class DriverService(private val locationService: LocationService) {
 
     private val db: FirebaseFirestore? by lazy { runCatching { FirebaseFirestore.getInstance() }.getOrNull() }
+    private var adminDriversListener: ListenerRegistration? = null
 
     private fun driverMap(driver: DriverProfile): Map<String, Any?> = mapOf(
         "driverId" to driver.driverId,
@@ -90,6 +92,51 @@ class DriverService(private val locationService: LocationService) {
                 _currentDriverProfile.value = driver
                 _allDrivers.value = _allDrivers.value.filterNot { it.driverId == driver.driverId } + driver
             }
+    }
+
+    fun observeAllDriversForAdmin() {
+        adminDriversListener?.remove()
+        adminDriversListener = db?.collection("drivers")?.addSnapshotListener { snapshot, error ->
+            if (error != null || snapshot == null) return@addSnapshotListener
+            val loaded = snapshot.documents.mapNotNull { doc ->
+                val loc = doc.get("currentLocation") as? Map<*, *>
+                DriverProfile(
+                    driverId = doc.getString("driverId") ?: doc.id,
+                    userId = doc.getString("userId") ?: return@mapNotNull null,
+                    fullName = doc.getString("fullName") ?: "",
+                    phone = doc.getString("phone") ?: "",
+                    vehicleType = runCatching { VehicleType.valueOf(doc.getString("vehicleType") ?: VehicleType.AUTO.name) }.getOrDefault(VehicleType.AUTO),
+                    vehicleNumber = doc.getString("vehicleNumber") ?: "",
+                    nidNumber = doc.getString("nidNumber") ?: "",
+                    licenseNumber = doc.getString("licenseNumber") ?: "",
+                    address = doc.getString("address") ?: "",
+                    emergencyContact = doc.getString("emergencyContact") ?: "",
+                    verificationStatus = runCatching { DriverVerificationStatus.valueOf(doc.getString("verificationStatus") ?: DriverVerificationStatus.NOT_APPLIED.name) }.getOrDefault(DriverVerificationStatus.NOT_APPLIED),
+                    isOnline = doc.getBoolean("isOnline") ?: false,
+                    currentLocation = GeoPoint(
+                        latitude = (loc?.get("latitude") as? Number)?.toDouble() ?: locationService.getDefaultUserLocation().latitude,
+                        longitude = (loc?.get("longitude") as? Number)?.toDouble() ?: locationService.getDefaultUserLocation().longitude,
+                        nameEn = loc?.get("nameEn") as? String ?: "Driver location",
+                        nameBn = loc?.get("nameBn") as? String ?: "ড্রাইভারের অবস্থান"
+                    ),
+                    driverRating = doc.getDouble("driverRating")?.toFloat() ?: 5.0f,
+                    totalCompletedTrips = doc.getLong("totalCompletedTrips")?.toInt() ?: 0,
+                    todayEarnings = doc.getDouble("todayEarnings") ?: 0.0,
+                    totalEarnings = doc.getDouble("totalEarnings") ?: 0.0
+                )
+            }
+            _allDrivers.value = loaded
+            _currentDriverProfile.value?.let { current ->
+                if (loaded.none { it.driverId == current.driverId }) {
+                    _allDrivers.value = loaded + current
+                }
+            }
+        }
+    }
+
+    fun stopAdminDriverObserver() {
+        adminDriversListener?.remove()
+        adminDriversListener = null
     }
 
     fun submitDriverRegistration(
