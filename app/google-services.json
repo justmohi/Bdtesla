@@ -13,7 +13,20 @@
           "package_name": "com.bdtesla.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1092731200658-irdq8bndiesi671vpm2mlteegqhh7vom.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bdtesla.app",
+            "certificate_hash": "18df26cf92c3e27cb421af02e3a345697db95360"
+          }
+        },
+        {
+          "client_id": "1092731200658-i3e1ls5kr1sb7tui5469oq01mct7rk5l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB3BTufmsf4GyzxQfxhQQW9-_xJQYC2a1g"
@@ -21,7 +34,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1092731200658-i3e1ls5kr1sb7tui5469oq01mct7rk5l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
