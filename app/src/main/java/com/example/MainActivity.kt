@@ -229,6 +229,7 @@ class MainActivity : ComponentActivity() {
                                                     distanceKm = distanceKm,
                                                     estimatedMinutes = estMinutes,
                                                     activeRide = uiState.activeRide,
+                                                    rideError = uiState.rideError,
                                                     locationService = viewModel.locationService,
                                                     language = uiState.language,
                                                     onSelectPickup = { viewModel.setPickup(it) },
