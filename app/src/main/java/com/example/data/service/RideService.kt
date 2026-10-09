@@ -336,9 +336,7 @@ class RideService(
         persistRide(completed)
         _rideHistory.value = listOf(completed) + _rideHistory.value
 
-        current.driverId?.let { drvId ->
-            driverService.recordCompletedTrip(drvId, current.estimatedFare)
-        }
+        // Earnings and commission must be updated by a trusted backend, not by the driver's client.
     }
 
     // Pay cash
