@@ -71,7 +71,8 @@ class MainActivity : ComponentActivity() {
                                 onOtpChange = { viewModel.setOtpInput(it) },
                                 onSendOtp = { viewModel.sendOtp(this@MainActivity) },
                                 onBackToPhone = { viewModel.backToPhoneInput() },
-                                onVerifyOtp = { viewModel.verifyOtp() }
+                                onVerifyOtp = { viewModel.verifyOtp() },
+                                onGoogleSignIn = { viewModel.signInWithGoogle(this@MainActivity) }
                             )
                         }
 
