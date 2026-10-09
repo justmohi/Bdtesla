@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:width="66dp"
-        android:height="66dp"
-        android:drawable="@drawable/bd_tesla_icon_1791386817149"
-        android:gravity="center" />
-</layer-list>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Crisp adaptive launcher mark; vector scales cleanly across Android densities. -->
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M54,10 C78,10 98,30 98,54 C98,78 78,98 54,98 C30,98 10,78 10,54 C10,30 30,10 54,10 Z" />
+    <path
+        android:fillColor="#0B1315"
+        android:pathData="M58,18 L35,56 L51,56 L44,89 L75,45 L57,45 L68,18 Z" />
+</vector>
